@@ -19,3 +19,6 @@ vcpkg_installed/
 # Environment
 .env
 /docs/Internal/
+
+# Claude Code
+.claude/settings.local.json

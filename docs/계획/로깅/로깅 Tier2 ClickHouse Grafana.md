@@ -1,5 +1,8 @@
 # 로깅 Tier 2: ClickHouse + Grafana (전 서비스 통합)
 
+> **구현 완료**. 실제 구현 상태는 [로깅 파이프라인](../../로깅%20파이프라인.md)을 참조.
+> 이 문서는 초기 설계 계획을 기록한다. 구현 과정에서 `clean_fields` transform 추가, 배치/버퍼 설정, healthcheck 등이 변경되었다.
+
 ## 목적
 
 Game Server, Queue Server, Chat Server 3개 서비스의 로그를 단일 ClickHouse 인스턴스에 수집하여 포렌식 조회, 집계/추이 분석, 실시간 대시보드, 알림을 제공한다.
