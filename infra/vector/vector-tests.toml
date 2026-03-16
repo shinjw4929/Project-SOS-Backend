@@ -1,0 +1,178 @@
+# Vector VRL 파싱 단위 테스트
+#
+# 실행:
+#   vector test --config-toml vector.toml --config-toml vector-tests.toml
+#
+# Docker 환경:
+#   docker compose cp infra/vector/vector-tests.toml vector:/tmp/vector-tests.toml
+#   docker exec <container> vector test \
+#     --config-toml /etc/vector/vector.toml \
+#     --config-toml /tmp/vector-tests.toml
+
+# ──────────────────────────────────────────
+# Game Server 파싱 (parse_game → clean_fields)
+# ──────────────────────────────────────────
+
+[[tests]]
+name = "game_info_with_network_id"
+
+  [[tests.inputs]]
+  insert_at = "parse_game"
+  type = "log"
+    [tests.inputs.log_fields]
+    message = "2026-03-16 12:34:43.415 | INFO    | [S:Network] Client connected, networkId=1"
+
+  [[tests.outputs]]
+  extract_from = "clean_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.service, "game")
+    assert_eq!(.level, "INFO")
+    assert_eq!(.world, "S")
+    assert_eq!(.category, "Network")
+    assert_eq!(.message, "Client connected, networkId=1")
+    assert_eq!(.network_id, 1)
+    assert_eq!(.ghost_id, 0)
+    '''
+
+[[tests]]
+name = "game_debug_with_ghost_id"
+
+  [[tests.inputs]]
+  insert_at = "parse_game"
+  type = "log"
+    [tests.inputs.log_fields]
+    message = "2026-03-16 12:34:43.357 | DEBUG   | [S:Wave] Wave0 spawned, count=5, idx=3"
+
+  [[tests.outputs]]
+  extract_from = "clean_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.service, "game")
+    assert_eq!(.level, "DEBUG")
+    assert_eq!(.world, "S")
+    assert_eq!(.category, "Wave")
+    assert_eq!(.message, "Wave0 spawned, count=5, idx=3")
+    assert_eq!(.network_id, 0)
+    assert_eq!(.ghost_id, 3)
+    '''
+
+[[tests]]
+name = "game_client_side_log"
+
+  [[tests.inputs]]
+  insert_at = "parse_game"
+  type = "log"
+    [tests.inputs.log_fields]
+    message = "2026-03-16 12:34:44.000 | ERROR   | [C:Combat] Hero died, networkId=2"
+
+  [[tests.outputs]]
+  extract_from = "clean_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.service, "game")
+    assert_eq!(.level, "ERROR")
+    assert_eq!(.world, "C")
+    assert_eq!(.category, "Combat")
+    assert_eq!(.network_id, 2)
+    '''
+
+[[tests]]
+name = "game_no_kvp_fields"
+
+  [[tests.inputs]]
+  insert_at = "parse_game"
+  type = "log"
+    [tests.inputs.log_fields]
+    message = "2026-03-16 12:34:44.000 | WARNING | [S:Wave] Wave 1 started"
+
+  [[tests.outputs]]
+  extract_from = "clean_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.level, "WARNING")
+    assert_eq!(.category, "Wave")
+    assert_eq!(.network_id, 0)
+    assert_eq!(.ghost_id, 0)
+    '''
+
+[[tests]]
+name = "game_invalid_format_dropped"
+no_outputs_from = ["clean_fields"]
+
+  [[tests.inputs]]
+  insert_at = "parse_game"
+  type = "log"
+    [tests.inputs.log_fields]
+    message = "some random garbage text"
+
+# ──────────────────────────────────────────
+# C++ Server 파싱 (clean_fields 직접 주입)
+#
+# parse_cpp는 docker_logs의 .label 중첩 객체를 필요로 하는데,
+# Vector test framework의 log_fields는 flat 값만 지원하므로
+# clean_fields에 직접 주입하여 필드 구조와 메타데이터 제거를 검증한다.
+# ──────────────────────────────────────────
+
+[[tests]]
+name = "cpp_queue_fields_pass_through"
+
+  [[tests.inputs]]
+  insert_at = "clean_fields"
+  type = "log"
+    [tests.inputs.log_fields]
+    service = "queue"
+    level = "INFO"
+    category = "Match"
+    message = "Client matched, depth=5, wait_ms=1200"
+    queue_depth = "5"
+    match_wait_ms = "1200"
+    source_type = "docker_logs"
+    stream = "stdout"
+    container_id = "abc123"
+    container_name = "queue-server"
+
+  [[tests.outputs]]
+  extract_from = "clean_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.service, "queue")
+    assert_eq!(.level, "INFO")
+    assert_eq!(.category, "Match")
+    assert_eq!(.message, "Client matched, depth=5, wait_ms=1200")
+    assert!(!exists(.source_type))
+    assert!(!exists(.stream))
+    assert!(!exists(.container_id))
+    assert!(!exists(.container_name))
+    '''
+
+[[tests]]
+name = "cpp_chat_fields_pass_through"
+
+  [[tests.inputs]]
+  insert_at = "clean_fields"
+  type = "log"
+    [tests.inputs.log_fields]
+    service = "chat"
+    level = "WARNING"
+    category = "Chat"
+    message = "Rate limited, channel=LOBBY, rate_limit=1"
+    channel = "LOBBY"
+    rate_limit_hit = "1"
+    label = "should_be_removed"
+
+  [[tests.outputs]]
+  extract_from = "clean_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.service, "chat")
+    assert_eq!(.level, "WARNING")
+    assert_eq!(.channel, "LOBBY")
+    assert!(!exists(.label))
+    '''

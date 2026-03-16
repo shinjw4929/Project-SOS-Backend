@@ -1,0 +1,8 @@
+<clickhouse>
+    <profiles>
+        <default>
+            <input_format_skip_unknown_fields>1</input_format_skip_unknown_fields>
+            <date_time_input_format>best_effort</date_time_input_format>
+        </default>
+    </profiles>
+</clickhouse>

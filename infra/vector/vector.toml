@@ -1,0 +1,149 @@
+# ──────────────────────────────────────────
+# Sources
+# ──────────────────────────────────────────
+
+[sources.game_logs]
+type = "file"
+include = ["/logs/game/**/*.log"]
+read_from = "beginning"
+
+[sources.docker_logs]
+type = "docker_logs"
+include_labels = ["vector.service"]
+
+# ──────────────────────────────────────────
+# Transforms: Game Server 로그 파싱
+# ──────────────────────────────────────────
+
+[transforms.parse_game]
+type = "remap"
+inputs = ["game_logs"]
+source = '''
+.message = strip_whitespace!(.message)
+
+parsed, err = parse_regex(
+  .message,
+  r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (?P<level>\w+)\s+\| \[(?P<world>[SC]):(?P<category>\w+)\] (?P<msg>.*)'
+)
+if err != null { abort }
+
+.timestamp = parse_timestamp!(parsed.ts, format: "%Y-%m-%d %H:%M:%S%.3f")
+.service = "game"
+.level = upcase(strip_whitespace!(parsed.level))
+.world = parsed.world
+.category = parsed.category
+.message = strip_whitespace!(parsed.msg)
+
+# key=value 패턴에서 구조화 필드 추출
+nid, err = parse_regex(.message, r'networkId=(?P<v>\d+)')
+if err == null { .network_id = to_int!(nid.v) } else { .network_id = 0 }
+
+gid, err = parse_regex(.message, r'idx=(?P<v>\d+)')
+if err == null { .ghost_id = to_int!(gid.v) } else { .ghost_id = 0 }
+
+# 환경변수 기본값
+.build_version = get_env_var("BUILD_VERSION") ?? "dev"
+.session_id = get_env_var("SESSION_ID") ?? "local"
+.server_id = get_env_var("SERVER_ID") ?? "dev-1"
+.record_type = "log"
+.violation_type = ""
+.entity_type = ""
+.team_id = 0
+.queue_depth = 0
+.match_wait_ms = 0
+.channel = ""
+.rate_limit_hit = 0
+.context = "{}"
+'''
+
+# ──────────────────────────────────────────
+# Transforms: C++ 서버 로그 파싱
+# ──────────────────────────────────────────
+
+[transforms.parse_cpp]
+type = "remap"
+inputs = ["docker_logs"]
+source = '''
+svc = get!(value: .label, path: ["vector.service"])
+.service = to_string(svc) ?? "unknown"
+
+parsed, err = parse_regex(
+  .message,
+  r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (?P<level>\w+)\s+\| \[(?P<category>\w+)\] (?P<msg>.*)'
+)
+if err != null { abort }
+
+.timestamp = parse_timestamp!(parsed.ts, format: "%Y-%m-%d %H:%M:%S%.3f")
+.level = upcase!(parsed.level)
+.category = parsed.category
+.message = parsed.msg
+
+.build_version = get_env_var("BUILD_VERSION") ?? "dev"
+.session_id = ""
+.server_id = get_env_var("SERVER_ID") ?? "dev-1"
+.record_type = "log"
+.world = ""
+.violation_type = ""
+.entity_type = ""
+.ghost_id = 0
+.team_id = 0
+.network_id = 0
+.queue_depth = 0
+.match_wait_ms = 0
+.channel = ""
+.rate_limit_hit = 0
+.context = "{}"
+
+if .service == "queue" {
+  qd, err = parse_regex(.message, r'depth=(?P<v>\d+)')
+  if err == null { .queue_depth = to_int!(qd.v) }
+  wm, err = parse_regex(.message, r'wait_ms=(?P<v>\d+)')
+  if err == null { .match_wait_ms = to_int!(wm.v) }
+}
+
+if .service == "chat" {
+  ch, err = parse_regex(.message, r'channel=(?P<v>\w+)')
+  if err == null { .channel = to_string(ch.v) }
+  rl, err = parse_regex(.message, r'rate_limit=(?P<v>\d+)')
+  if err == null { .rate_limit_hit = to_int!(rl.v) }
+}
+'''
+
+# ──────────────────────────────────────────
+# Sink: ClickHouse
+# ──────────────────────────────────────────
+
+[transforms.clean_fields]
+type = "remap"
+inputs = ["parse_game", "parse_cpp"]
+source = '''
+del(.file)
+del(.host)
+del(.source_type)
+del(.label)
+del(.stream)
+del(.container_created_at)
+del(.container_id)
+del(.container_name)
+del(.image)
+'''
+
+[sinks.clickhouse]
+type = "clickhouse"
+inputs = ["clean_fields"]
+endpoint = "http://clickhouse:8123"
+database = "project_sos"
+table = "service_events"
+auth.strategy = "basic"
+auth.user = "default"
+auth.password = "${CH_PASSWORD}"
+
+# 배치: 이벤트를 모아서 한 번에 전송 (ClickHouse는 큰 배치에 최적화)
+batch.max_events = 1000
+batch.timeout_secs = 5
+
+# 버퍼: 버스트 시 디스크 버퍼로 유실 방지
+[sinks.clickhouse.buffer]
+type = "disk"
+max_size = 536870912        # 512 MB
+when_full = "block"

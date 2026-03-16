@@ -1,0 +1,21 @@
+# Build
+build/
+cmake-build-*/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+vcpkg_installed/
+
+# Environment
+.env
+/docs/Internal/

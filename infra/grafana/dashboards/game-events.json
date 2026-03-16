@@ -1,0 +1,128 @@
+{
+  "uid": "game-events",
+  "title": "Game Events",
+  "tags": ["project-sos", "game"],
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": { "from": "now-3h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Wave Transitions",
+      "type": "table",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND category = 'Wave' AND level = 'INFO' ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Kill Count (per minute)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, count() AS kills FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND category = 'Combat' AND message LIKE 'Kills%' GROUP BY time ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 30 },
+          "color": { "fixedColor": "red", "mode": "fixed" }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Economy Events (Build / Production)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Build%', 'Build', message LIKE 'Production%', 'Production', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND category = 'Economy' GROUP BY time, event_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Network Events",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, world, message, network_id FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND category = 'Network' ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Enemy Spawns (per minute)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, count() AS spawns FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND category = 'Wave' AND level = 'DEBUG' GROUP BY time ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 20 },
+          "color": { "fixedColor": "purple", "mode": "fixed" }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Movement Warnings (Stuck / Path Failures)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Enemy stuck%', 'Enemy Stuck', message LIKE 'Path failures%', 'Path Failures', message LIKE 'Build retry%', 'Build Retry', message LIKE 'Build giveup%', 'Build Giveup', 'Other') AS warning_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND level = 'WARNING' GROUP BY time, warning_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Hero Deaths & Game Over",
+      "type": "table",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 22 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, message, network_id FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND category = 'Combat' AND (message LIKE 'Hero died%' OR message LIKE 'GameOver%') ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39
+}

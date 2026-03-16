@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(docker compose:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec project-sos-backend-vector-1 vector test --config-toml /etc/vector/vector.toml 2>&1)",
+      "Bash(cd: *)"
+    ]
+  }
+}
