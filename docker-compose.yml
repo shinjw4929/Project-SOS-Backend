@@ -65,12 +65,12 @@ services:
         condition: service_healthy
 
   # === 게임 서비스 ===
-  # queue-server:
-  #   build: ./src/queue
+  # room-server:
+  #   build: ./src/room
   #   ports: ["8080:8080", "8081:8081"]
   #   depends_on: [redis]
   #   labels:
-  #     vector.service: "queue"
+  #     vector.service: "room"
 
   # chat-server:
   #   build: ./src/chat

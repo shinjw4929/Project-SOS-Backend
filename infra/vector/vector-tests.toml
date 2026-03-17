@@ -119,32 +119,30 @@ no_outputs_from = ["clean_fields"]
 # ──────────────────────────────────────────
 
 [[tests]]
-name = "cpp_queue_fields_pass_through"
+name = "cpp_room_fields_pass_through"
 
   [[tests.inputs]]
   insert_at = "clean_fields"
   type = "log"
     [tests.inputs.log_fields]
-    service = "queue"
+    service = "room"
     level = "INFO"
-    category = "Match"
-    message = "Client matched, depth=5, wait_ms=1200"
-    queue_depth = "5"
-    match_wait_ms = "1200"
+    category = "Room"
+    message = "Room started, rooms=5, players=8"
     source_type = "docker_logs"
     stream = "stdout"
     container_id = "abc123"
-    container_name = "queue-server"
+    container_name = "room-server"
 
   [[tests.outputs]]
   extract_from = "clean_fields"
     [[tests.outputs.conditions]]
     type = "vrl"
     source = '''
-    assert_eq!(.service, "queue")
+    assert_eq!(.service, "room")
     assert_eq!(.level, "INFO")
-    assert_eq!(.category, "Match")
-    assert_eq!(.message, "Client matched, depth=5, wait_ms=1200")
+    assert_eq!(.category, "Room")
+    assert_eq!(.message, "Room started, rooms=5, players=8")
     assert!(!exists(.source_type))
     assert!(!exists(.stream))
     assert!(!exists(.container_id))
@@ -162,8 +160,6 @@ name = "cpp_chat_fields_pass_through"
     level = "WARNING"
     category = "Chat"
     message = "Rate limited, channel=LOBBY, rate_limit=1"
-    channel = "LOBBY"
-    rate_limit_hit = "1"
     label = "should_be_removed"
 
   [[tests.outputs]]
@@ -173,6 +169,5 @@ name = "cpp_chat_fields_pass_through"
     source = '''
     assert_eq!(.service, "chat")
     assert_eq!(.level, "WARNING")
-    assert_eq!(.channel, "LOBBY")
     assert!(!exists(.label))
     '''

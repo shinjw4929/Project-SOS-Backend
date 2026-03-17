@@ -1,0 +1,116 @@
+syntax = "proto3";
+package sos.chat;
+
+enum ChatChannel {
+    CHANNEL_UNKNOWN = 0;
+    CHANNEL_LOBBY = 1;    // 로비 전체
+    CHANNEL_ALL = 2;      // 인게임 전체
+    CHANNEL_WHISPER = 3;  // 1:1 귓속말
+}
+
+// ============================================================
+// Client -> Chat Server
+// ============================================================
+
+message ChatAuth {
+    string player_id = 1;
+    string session_id = 2;  // 로비: 빈 문자열, 인게임: 세션 ID
+    string player_name = 3;
+}
+
+message ChatSend {
+    ChatChannel channel = 1;
+    string content = 2;
+    string whisper_target = 3; // WHISPER 전용: 대상 player_id
+}
+
+message JoinChannel {
+    ChatChannel channel = 1;
+}
+
+message LeaveChannel {
+    ChatChannel channel = 1;
+}
+
+message ChatHeartbeat {}
+
+// ============================================================
+// Chat Server -> Client
+// ============================================================
+
+message ChatAuthResult {
+    bool success = 1;
+    string reason = 2;
+}
+
+message ChatReceive {
+    ChatChannel channel = 1;
+    string sender_id = 2;
+    string sender_name = 3;
+    string content = 4;
+    uint64 timestamp = 5;
+}
+
+message SystemMessage {
+    ChatChannel channel = 1;
+    string content = 2;
+    uint64 timestamp = 3;
+}
+
+message ChatError {
+    ChatErrorCode code = 1;
+    string message = 2;
+
+    enum ChatErrorCode {
+        UNKNOWN = 0;
+        NOT_AUTHENTICATED = 1;
+        RATE_LIMITED = 2;
+        INVALID_CHANNEL = 3;
+        MESSAGE_TOO_LONG = 4;
+        PLAYER_NOT_FOUND = 5;
+        CHANNEL_NOT_JOINED = 6;
+    }
+}
+
+// ============================================================
+// Internal: Room Server -> Chat Server (:8083)
+// ============================================================
+
+message SessionCreated {
+    string session_id = 1;
+    repeated PlayerInfo players = 2;
+
+    message PlayerInfo {
+        string player_id = 1;
+        string player_name = 2;
+    }
+}
+
+message SessionEnded {
+    string session_id = 1;
+}
+
+// ============================================================
+// ChatEnvelope: 4byte LE length prefix + serialized ChatEnvelope
+// ============================================================
+
+message ChatEnvelope {
+    oneof payload {
+        // Client -> Chat Server
+        ChatAuth auth = 1;
+        ChatSend send = 2;
+        JoinChannel join_channel = 3;
+        LeaveChannel leave_channel = 4;
+        ChatHeartbeat heartbeat = 5;
+
+        // Chat Server -> Client
+        ChatAuthResult auth_result = 10;
+        ChatReceive receive = 11;
+        SystemMessage system_message = 12;
+        ChatError error = 13;
+
+        // Internal: Room Server -> Chat Server
+        SessionCreated session_created = 20;
+        SessionEnded session_ended = 21;
+    }
+}

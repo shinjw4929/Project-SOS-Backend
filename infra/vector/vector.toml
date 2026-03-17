@@ -49,10 +49,6 @@ if err == null { .ghost_id = to_int!(gid.v) } else { .ghost_id = 0 }
 .violation_type = ""
 .entity_type = ""
 .team_id = 0
-.queue_depth = 0
-.match_wait_ms = 0
-.channel = ""
-.rate_limit_hit = 0
 .context = "{}"
 '''
 
@@ -88,29 +84,11 @@ if err != null { abort }
 .ghost_id = 0
 .team_id = 0
 .network_id = 0
-.queue_depth = 0
-.match_wait_ms = 0
-.channel = ""
-.rate_limit_hit = 0
 .context = "{}"
-
-if .service == "queue" {
-  qd, err = parse_regex(.message, r'depth=(?P<v>\d+)')
-  if err == null { .queue_depth = to_int!(qd.v) }
-  wm, err = parse_regex(.message, r'wait_ms=(?P<v>\d+)')
-  if err == null { .match_wait_ms = to_int!(wm.v) }
-}
-
-if .service == "chat" {
-  ch, err = parse_regex(.message, r'channel=(?P<v>\w+)')
-  if err == null { .channel = to_string(ch.v) }
-  rl, err = parse_regex(.message, r'rate_limit=(?P<v>\d+)')
-  if err == null { .rate_limit_hit = to_int!(rl.v) }
-}
 '''
 
 # ──────────────────────────────────────────
-# Sink: ClickHouse
+# Transform: 메타데이터 제거 + Sink: ClickHouse
 # ──────────────────────────────────────────
 
 [transforms.clean_fields]

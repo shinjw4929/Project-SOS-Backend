@@ -34,7 +34,7 @@ Before implementing any request, ask yourself: "Is this the most efficient way t
 
 Project-SOS-Backend는 Project-SOS (멀티플레이어 RTS 게임)의 백엔드 인프라 및 서버 프로젝트다.
 
-- **Queue Server**: C++ / Boost.Asio / TCP + Protobuf (매칭/대기열)
+- **Room Server**: C++ / Boost.Asio / TCP + Protobuf (방 관리/게임 시작)
 - **Chat Server**: C++ / Boost.Asio / TCP + Protobuf (인게임 채팅)
 - **Logging Pipeline**: Vector → ClickHouse → Grafana (전 서비스 통합 로그)
 - **공통 운영 저장소**: Redis (세션, 토큰, 캐시)
@@ -53,10 +53,10 @@ Project-SOS-Backend는 Project-SOS (멀티플레이어 RTS 게임)의 백엔드 
 
 ```
 Project-SOS-Backend/
-├── proto/                    # Protobuf 정의 (queue.proto, chat.proto)
+├── proto/                    # Protobuf 정의 (room.proto, chat.proto)
 ├── src/
 │   ├── common/               # 공유 라이브러리 (protocol, redis, ratelimit, util)
-│   ├── queue/                # Queue Server (매칭/대기열)
+│   ├── room/                 # Room Server (방 관리/게임 시작)
 │   └── chat/                 # Chat Server (채팅)
 ├── infra/
 │   ├── clickhouse/
@@ -85,7 +85,7 @@ Project-SOS-Backend/
 
 | 서비스 | 이미지 | 포트 | 역할 |
 |--------|--------|------|------|
-| Redis | `redis:7-alpine` | 6379 | Queue/Chat 운영 저장소 |
+| Redis | `redis:7-alpine` | 6379 | Room/Chat 운영 저장소 |
 | ClickHouse | `clickhouse/clickhouse-server:24.3` | 8123 (HTTP), 9000 (Native) | 로그 저장소 |
 | Vector | `timberio/vector:0.41.1-debian` | - | 로그 수집 + 파싱 + 전송 |
 | Grafana | `grafana/grafana:11.4.0` | 3000 | 대시보드 + 시각화 |
@@ -94,15 +94,15 @@ Project-SOS-Backend/
 
 | 포트 | 서비스 | 방향 |
 |------|--------|------|
-| 7979 | Game Server (Unity) | 클라이언트 대면 |
-| 8080 | Queue Server | 클라이언트 대면 |
-| 8081 | Queue Server | 내부 (Game Server 연결) |
-| 8082 | Chat Server | 클라이언트 대면 |
-| 8083 | Chat Server | 내부 (Queue/Game Server 연결) |
+| 7979 | Game Server (Unity) | Client-facing |
+| 8080 | Room Server | Client-facing |
+| 8081 | Room Server | 내부 (Game Server 연결) |
+| 8082 | Chat Server | Client-facing |
+| 8083 | Chat Server | 내부 (Room/Game Server 연결) |
 | 6379 | Redis | 내부 |
 | 8123 | ClickHouse HTTP | 내부 |
 | 9000 | ClickHouse Native | 내부 |
-| 3000 | Grafana | 관리자 대면 |
+| 3000 | Grafana | Admin-facing |
 
 ---
 
@@ -112,7 +112,7 @@ Project-SOS-Backend/
 
 ```
 [Unity Game Server] → 로컬 파일 → [Vector] file source ──→ [ClickHouse] → [Grafana]
-[Queue Server (C++)] → Docker stdout → [Vector] docker_logs ─┘
+[Room Server (C++)] → Docker stdout → [Vector] docker_logs ─┘
 [Chat Server (C++)] → Docker stdout → [Vector] docker_logs ──┘
 ```
 
@@ -130,8 +130,8 @@ Game Server 예시:
 
 C++ Server 예시:
 ```
-2026-03-16 10:00:01.100 | INFO    | [Match] Client matched, wait_ms=1200
-2026-03-16 10:01:01.100 | INFO    | [Chat] Message sent, channel=TEAM
+2026-03-16 10:00:01.100 | INFO    | [Room] Room started, room_id=abc, players=4
+2026-03-16 10:01:01.100 | INFO    | [Chat] Message sent, channel=ALL
 ```
 
 ### ClickHouse Table: `project_sos.service_events`
@@ -139,14 +139,12 @@ C++ Server 예시:
 | 컬럼 | 타입 | 용도 |
 |------|------|------|
 | timestamp | DateTime64(3, 'UTC') | 이벤트 시각 |
-| service | LowCardinality(String) | game / queue / chat |
+| service | LowCardinality(String) | game / room / chat |
 | level | LowCardinality(String) | DEBUG / INFO / WARNING / ERROR |
 | category | LowCardinality(String) | Combat / Wave / Economy / Match / Chat 등 |
 | message | String | 로그 메시지 본문 |
 | world | LowCardinality(String) | S / C (Game Server 전용) |
 | network_id / ghost_id | Int32 | Game Server 전용 |
-| queue_depth / match_wait_ms | Int32 | Queue Server 전용 |
-| channel / rate_limit_hit | String / UInt8 | Chat Server 전용 |
 
 ### Grafana Dashboards
 
@@ -168,7 +166,7 @@ src/
 │   ├── redis/       # Redis 클라이언트 래퍼
 │   ├── ratelimit/   # Rate limiting
 │   └── util/        # 공통 유틸리티
-├── queue/           # Queue Server 실행 파일
+├── room/            # Room Server 실행 파일
 └── chat/            # Chat Server 실행 파일
 ```
 
@@ -177,7 +175,6 @@ src/
 | 채널 | 범위 | 히스토리 |
 |------|------|---------|
 | LOBBY | 전체 접속자 | 없음 |
-| TEAM | 같은 세션 + 같은 팀 | Redis TTL 2시간, 최근 20개 |
 | ALL | 같은 세션 전체 | Redis TTL 2시간, 최근 20개 |
 | WHISPER | 1:1 | 없음 |
 
@@ -214,13 +211,14 @@ docs/
 ├── 시스템 아키텍처.md              # 전체 백엔드 시스템 구조
 ├── 로깅 파이프라인.md              # Vector → ClickHouse → Grafana 상세
 ├── 계획/
+│   ├── 구현 우선순위.md             # Phase 1~6 구현 순서 및 의존성
 │   ├── 로깅/
 │   │   ├── 로깅 시스템 구축 계획.md
 │   │   └── 로깅 Tier2 ClickHouse Grafana.md
 │   ├── 채팅 서버/
 │   │   └── 채팅 서버 구축 계획.md
-│   └── 대기열 서버/
-│       └── C++ 대기열 서버 구축 계획.md
+│   └── 룸 서버/
+│       └── C++ 룸 서버 구축 계획.md
 ```
 
 ### 문서 업데이트 규칙 (필수)
@@ -232,7 +230,7 @@ docs/
 | ClickHouse 스키마 변경 | `docs/계획/로깅/` 관련 문서 |
 | Vector 설정 변경 | `docs/계획/로깅/` 관련 문서 |
 | Grafana 대시보드 변경 | `docs/계획/로깅/` 관련 문서 |
-| C++ 서버 코드 변경 | `docs/계획/채팅 서버/` 또는 `docs/계획/대기열 서버/` |
+| C++ 서버 코드 변경 | `docs/계획/채팅 서버/` 또는 `docs/계획/룸 서버/` |
 | Protobuf 변경 | 관련 서버 문서 |
 | 새 인프라 컴포넌트 추가 | `docs/구현기록/` 새 문서 작성 |
 

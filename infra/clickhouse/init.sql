@@ -21,14 +21,6 @@ CREATE TABLE project_sos.service_events (
     team_id Int8 DEFAULT 0,
     network_id Int32 DEFAULT 0,
 
-    -- Queue Server 전용
-    queue_depth Int32 DEFAULT 0,
-    match_wait_ms Int32 DEFAULT 0,
-
-    -- Chat Server 전용
-    channel LowCardinality(String) DEFAULT '',
-    rate_limit_hit UInt8 DEFAULT 0,
-
     -- 유연한 추가 데이터
     context String DEFAULT '{}'
 ) ENGINE = MergeTree()

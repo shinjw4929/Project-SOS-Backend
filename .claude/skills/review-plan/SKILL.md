@@ -30,7 +30,7 @@ description: Plan 모드에서 생성된 구현 계획을 프로젝트 컨벤션
 다음 항목을 순서대로 검증한다:
 
 **A. 아키텍처 적합성**
-- 모듈 분리가 올바른가? (common/queue/chat/infra)
+- 모듈 분리가 올바른가? (common/room/chat/infra)
 - 기존 패턴과 일관되는가? (로그 형식, Docker 구성, Protobuf 정의 등)
 - 서비스 간 통신 방식이 계획과 일치하는가?
 

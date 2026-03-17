@@ -1,0 +1,170 @@
+syntax = "proto3";
+package sos.room;
+
+// ============================================================
+// Shared Types
+// ============================================================
+
+enum RoomState {
+    ROOM_WAITING = 0;   // 대기 중 (참가/레디 가능)
+    ROOM_IN_GAME = 1;   // 게임 진행 중
+}
+
+message PlayerInfo {
+    string player_id = 1;
+    string player_name = 2;
+    bool is_ready = 3;
+    bool is_host = 4;
+}
+
+message RoomInfo {
+    string room_id = 1;
+    string room_name = 2;
+    string host_id = 3;
+    uint32 max_players = 4;
+    RoomState state = 5;
+    repeated PlayerInfo players = 6;
+}
+
+// ============================================================
+// Client -> Room Server
+// ============================================================
+
+message CreateRoomRequest {
+    string player_id = 1;
+    string player_name = 2;
+    string room_name = 3;
+    uint32 max_players = 4; // 1~8
+}
+
+message JoinRoomRequest {
+    string player_id = 1;
+    string player_name = 2;
+    string room_id = 3;
+}
+
+message LeaveRoomRequest {}
+
+message ToggleReadyRequest {}
+
+message StartGameRequest {} // host only
+
+message RoomListRequest {
+    uint32 page = 1;      // 0부터 시작
+    uint32 page_size = 2; // 기본 20
+}
+
+message RoomHeartbeat {}
+
+// ============================================================
+// Room Server -> Client
+// ============================================================
+
+message CreateRoomResponse {
+    bool success = 1;
+    RoomInfo room = 2;
+    string reason = 3;
+}
+
+message JoinRoomResponse {
+    bool success = 1;
+    RoomInfo room = 2;
+    string reason = 3;
+}
+
+message RoomListResponse {
+    repeated RoomSummary rooms = 1;
+    uint32 total_rooms = 2; // 전체 방 수 (페이징 UI용)
+
+    message RoomSummary {
+        string room_id = 1;
+        string room_name = 2;
+        string host_name = 3;
+        uint32 current_players = 4;
+        uint32 max_players = 5;
+        RoomState state = 6;
+    }
+}
+
+message RoomUpdate {
+    RoomInfo room = 1;
+}
+
+message GameStart {
+    string session_id = 1;
+    string auth_token = 2;
+    string game_server_host = 3;
+    uint32 game_server_port = 4;
+}
+
+message RejectResponse {
+    RejectReason reason = 1;
+    string message = 2;
+
+    enum RejectReason {
+        UNKNOWN = 0;
+        ROOM_FULL = 1;
+        ROOM_NOT_FOUND = 2;
+        NOT_HOST = 3;
+        NOT_ALL_READY = 4;
+        RATE_LIMITED = 5;
+        DUPLICATE_PLAYER = 6;
+        ALREADY_IN_ROOM = 7;
+        INVALID_REQUEST = 8;
+    }
+}
+
+// ============================================================
+// Internal: Game Server <-> Room Server (:8081)
+// ============================================================
+
+message TokenValidateRequest {
+    string auth_token = 1;
+}
+
+message TokenValidateResponse {
+    bool valid = 1;
+    string player_id = 2;
+    string session_id = 3;
+}
+
+message SlotReleased {
+    string player_id = 1;
+    string session_id = 2;
+}
+
+message GameServerHeartbeat {
+    string server_id = 1;
+    uint32 active_sessions = 2;
+}
+
+// ============================================================
+// Envelope: 4byte LE length prefix + serialized Envelope
+// ============================================================
+
+message Envelope {
+    oneof payload {
+        // Client -> Room Server
+        CreateRoomRequest create_room = 1;
+        JoinRoomRequest join_room = 2;
+        LeaveRoomRequest leave_room = 3;
+        ToggleReadyRequest toggle_ready = 4;
+        StartGameRequest start_game = 5;
+        RoomListRequest room_list_request = 6;
+        RoomHeartbeat heartbeat = 7;
+
+        // Room Server -> Client
+        CreateRoomResponse create_room_response = 10;
+        JoinRoomResponse join_room_response = 11;
+        RoomListResponse room_list_response = 12;
+        RoomUpdate room_update = 13;
+        GameStart game_start = 14;
+        RejectResponse reject = 15;
+
+        // Internal: Game Server <-> Room Server
+        TokenValidateRequest token_validate_request = 20;
+        TokenValidateResponse token_validate_response = 21;
+        SlotReleased slot_released = 22;
+        GameServerHeartbeat game_server_heartbeat = 23;
+    }
+}

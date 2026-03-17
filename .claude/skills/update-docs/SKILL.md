@@ -22,7 +22,7 @@ allowed-tools: Read, Edit, Grep, Glob, Bash
 | ClickHouse 스키마 변경 | `docs/계획/로깅/` 관련 문서 |
 | Vector 설정 변경 | `docs/계획/로깅/` 관련 문서 |
 | Grafana 대시보드 변경 | `docs/계획/로깅/` 관련 문서 |
-| C++ 서버 코드 변경 | `docs/계획/채팅 서버/` 또는 `docs/계획/대기열 서버/` |
+| C++ 서버 코드 변경 | `docs/계획/채팅 서버/` 또는 `docs/계획/룸 서버/` |
 | Protobuf 변경 | 관련 서버 문서 |
 | 새 인프라 컴포넌트 추가 | `docs/구현기록/` 새 문서 작성 |
 
