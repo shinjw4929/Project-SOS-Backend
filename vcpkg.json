@@ -1,0 +1,11 @@
+{
+  "name": "project-sos-backend",
+  "version": "0.1.0",
+  "dependencies": [
+    "protobuf",
+    "spdlog",
+    "nlohmann-json",
+    "hiredis",
+    "redis-plus-plus"
+  ]
+}

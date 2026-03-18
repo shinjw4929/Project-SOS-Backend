@@ -11,13 +11,13 @@
 
 | 항목 | 선택 | 버전 | 용도 |
 |------|------|------|------|
-| 언어 | C++20 | MSVC 17+ | coroutine, concepts |
-| 빌드 | CMake | 3.25+ | 빌드 시스템 |
+| 언어 | C++20 | MSVC 19.44 | coroutine, concepts |
+| 빌드 | CMake + Ninja | 4.2 | 빌드 시스템 |
 | 패키지 | vcpkg | latest | 라이브러리 관리 |
 | 비동기 I/O | Boost.Asio | 1.84+ | TCP 서버, 비동기 소켓 |
-| Redis 클라이언트 | hiredis + redis-plus-plus | 1.2+ / 1.3+ | 세션 TTL, Rate Limit |
-| 직렬화 | Protobuf | 3.25+ | 스키마 기반 메시지, C++/C# 코드젠 |
-| 로깅 | spdlog | 1.13+ | 구조화된 로그 출력 |
+| Redis 클라이언트 | hiredis + redis-plus-plus | 1.3.0 / 1.3.15 | 세션 TTL, Rate Limit |
+| 직렬화 | Protobuf | 6.33.4 (protoc 33.4.0) | 스키마 기반 메시지, C++/C# 코드젠 |
+| 로깅 | spdlog | 1.17.0 | 구조화된 로그 출력 |
 | 테스트 | Catch2 | 3.5+ | 단위/통합 테스트 |
 | 외부 서비스 | Redis | 7.0+ | 인메모리 데이터 스토어 |
 
@@ -33,12 +33,12 @@
 
 ### 1. 개발 환경
 
-| 항목 | 설치 방법 | 비고 |
-|------|----------|------|
-| **Visual Studio 2022** | [설치](https://visualstudio.microsoft.com/) | "C++ 데스크톱 개발" 워크로드 선택 |
-| **CMake 3.25+** | VS 포함 또는 [별도 설치](https://cmake.org/) | `cmake --version`으로 확인 |
-| **vcpkg** | `git clone https://github.com/microsoft/vcpkg` → `bootstrap-vcpkg.bat` | 환경변수 `VCPKG_ROOT` 설정 |
-| **Git** | 기존 설치 활용 | 저장소 관리 |
+| 항목 | 설치 방법 | 현재 버전 |
+|------|----------|----------|
+| **Visual Studio 2022** | `winget install Microsoft.VisualStudio.2022.Community` | Community, MSVC 19.44 |
+| **CMake** | `winget install Kitware.CMake` | 4.2.3 |
+| **Ninja** | `winget install Ninja-build.Ninja` | - |
+| **vcpkg** | `git clone https://github.com/microsoft/vcpkg C:\vcpkg` → `bootstrap-vcpkg.bat` | `VCPKG_ROOT=C:\vcpkg` |
 | **Docker Desktop** | [설치](https://www.docker.com/products/docker-desktop/) | Redis 실행용 |
 
 ### 2. Redis 서버
@@ -53,20 +53,23 @@ Docker 방식 권장. RedisInsight로 데이터 확인 가능.
 
 ### 3. vcpkg 의존성
 
+현재 `vcpkg.json` (Phase 1 기준):
+
 ```json
 {
-  "name": "project-sos-room-server",
+  "name": "project-sos-backend",
   "version": "0.1.0",
   "dependencies": [
-    "boost-asio",
-    "hiredis",
-    "redis-plus-plus",
     "protobuf",
-    "nlohmann-json",
     "spdlog",
-    "catch2"
+    "nlohmann-json",
+    "hiredis",
+    "redis-plus-plus"
   ]
 }
+```
+
+Phase 2~6에서 추가 예정: `boost-asio`, `catch2`
 ```
 
 ### 4. Protobuf 스키마
@@ -323,6 +326,8 @@ config/
 ```
 
 **완료 기준**: 빌드 성공, 실행 시 로그 출력, protoc 코드젠 정상 동작.
+
+**완료됨.** common 라이브러리(`Codec<T>`, `RedisClient`, `RateLimiter`, `Config`, `Logger`) 포함.
 
 ---
 

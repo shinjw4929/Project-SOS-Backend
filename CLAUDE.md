@@ -42,10 +42,29 @@ Project-SOS-Backend는 Project-SOS (멀티플레이어 RTS 게임)의 백엔드 
 ## Build & Development
 
 - **C++ Standard**: C++20
-- **Build System**: CMake 3.20+
-- **IDE**: CLion (MinGW + Ninja)
+- **Compiler**: MSVC 19.44 (Visual Studio 2022 Community)
+- **Build System**: CMake 4.2 + Ninja + vcpkg
+- **Package Manager**: vcpkg (`VCPKG_ROOT=C:\vcpkg`)
+- **IDE**: CLion (Visual Studio 툴체인 + Ninja)
 - **Infrastructure**: Docker Compose
 - **Game Server Port**: 7979 (Unity Netcode for Entities)
+
+### 빌드 방법 (CLI)
+
+```bash
+# Developer Command Prompt for VS 2022에서 실행
+cmake --preset=default          # Configure (vcpkg 자동 설치)
+cmake --build build             # Build
+build\src\room\room-server.exe  # 실행
+```
+
+### CMake 타겟
+
+| 타겟 | 종류 | 설명 |
+|------|------|------|
+| `sos_common` | STATIC 라이브러리 | Protobuf 코드젠 + 공유 코드 |
+| `room-server` | 실행 파일 | Room Server |
+| `chat-server` | 실행 파일 | Chat Server |
 
 ---
 
@@ -69,10 +88,12 @@ Project-SOS-Backend/
 │       ├── dashboards.yml    # 대시보드 프로비저닝
 │       └── dashboards/       # JSON 대시보드 파일
 ├── docs/
-│   ├── 계획/                  # 구축 계획 문서
-│   └── 구현기록/              # 구현 완료 기록
+│   ├── Internal/구현기록/     # 구현 완료 기록 (gitignore)
+│   └── 계획/                  # 구축 계획 문서
 ├── docker-compose.yml
-├── CMakeLists.txt
+├── CMakeLists.txt            # 루트 빌드 설정
+├── CMakePresets.json         # CMake 프리셋 (vcpkg 통합)
+├── vcpkg.json                # vcpkg 의존성 매니페스트
 ├── .env                      # 환경변수 (gitignore)
 └── .env.example              # 환경변수 템플릿
 ```
