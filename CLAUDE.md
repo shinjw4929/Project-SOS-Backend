@@ -76,6 +76,8 @@ Project-SOS-Backend/
 ├── src/
 │   ├── common/               # 공유 라이브러리 (protocol, redis, ratelimit, util)
 │   ├── room/                 # Room Server (방 관리/게임 시작)
+│   │   ├── server/           # RoomServer (TCP acceptor), ClientSession
+│   │   └── room/             # Room, RoomManager
 │   └── chat/                 # Chat Server (채팅)
 ├── infra/
 │   ├── clickhouse/

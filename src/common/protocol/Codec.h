@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace sos {

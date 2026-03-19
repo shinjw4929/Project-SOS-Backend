@@ -111,6 +111,7 @@ message RejectResponse {
         DUPLICATE_PLAYER = 6;
         ALREADY_IN_ROOM = 7;
         INVALID_REQUEST = 8;
+        ROOM_CLOSED = 9;
     }
 }
 

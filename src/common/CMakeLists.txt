@@ -32,6 +32,7 @@ add_library(sos_common STATIC
     ${PROTO_HDRS}
     util/Logger.cpp
     util/Config.cpp
+    util/UuidGenerator.cpp
     redis/RedisClient.cpp
     ratelimit/RateLimiter.cpp
 )
