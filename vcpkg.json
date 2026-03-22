@@ -1,12 +1,14 @@
 {
   "name": "project-sos-backend",
   "version": "0.1.0",
+  "builtin-baseline": "4ef2a7144d00c2f446029b9700e701a3094b8bfb",
   "dependencies": [
     "protobuf",
     "boost-asio",
     "spdlog",
     "nlohmann-json",
     "hiredis",
-    "redis-plus-plus"
+    "redis-plus-plus",
+    "catch2"
   ]
 }

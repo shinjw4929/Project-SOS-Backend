@@ -8,3 +8,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_subdirectory(src/common)
 add_subdirectory(src/room)
 add_subdirectory(src/chat)
+
+enable_testing()
+add_subdirectory(tests)

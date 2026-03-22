@@ -65,6 +65,15 @@ build\src\room\room-server.exe  # 실행
 | `sos_common` | STATIC 라이브러리 | Protobuf 코드젠 + 공유 코드 |
 | `room-server` | 실행 파일 | Room Server |
 | `chat-server` | 실행 파일 | Chat Server |
+| `unit-tests` | 실행 파일 | Catch2 유닛 테스트 (Codec, UUID, Config, Room) |
+
+### 테스트 실행
+
+```bash
+# Developer Command Prompt for VS 2022에서 실행
+cmake --build build --target unit-tests
+cd build && ctest --output-on-failure
+```
 
 ---
 
@@ -89,6 +98,7 @@ Project-SOS-Backend/
 │       ├── datasources.yml   # ClickHouse 데이터소스
 │       ├── dashboards.yml    # 대시보드 프로비저닝
 │       └── dashboards/       # JSON 대시보드 파일
+├── tests/                    # Catch2 유닛 테스트
 ├── docs/
 │   ├── Internal/구현기록/     # 구현 완료 기록 (gitignore)
 │   └── 계획/                  # 구축 계획 문서
