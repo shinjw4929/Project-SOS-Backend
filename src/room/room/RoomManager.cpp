@@ -1,15 +1,21 @@
 #include "RoomManager.h"
 #include "Room.h"
 #include "server/ClientSession.h"
+#include "redis/SessionStore.h"
 #include "util/UuidGenerator.h"
 
 #include <spdlog/spdlog.h>
 
 namespace sos {
 
-RoomManager::RoomManager(uint32_t max_rooms, uint32_t max_players_per_room)
+RoomManager::RoomManager(uint32_t max_rooms, uint32_t max_players_per_room,
+                         std::shared_ptr<SessionStore> session_store,
+                         std::string game_server_host, uint16_t game_server_port)
     : max_rooms_(max_rooms)
     , max_players_per_room_(max_players_per_room)
+    , session_store_(std::move(session_store))
+    , game_server_host_(std::move(game_server_host))
+    , game_server_port_(game_server_port)
 {
 }
 
@@ -234,18 +240,37 @@ void RoomManager::handleStartGame(const std::string& player_id) {
 
     room->setState(sos::room::ROOM_IN_GAME);
     auto session_id = generateUuid();
+    room->setSessionId(session_id);
+
+    // Redis에 게임 세션 등록
+    if (session_store_) {
+        try {
+            session_store_->registerGameSession(session_id);
+        } catch (const std::exception& e) {
+            spdlog::error("[Room] Failed to register game session, error={}", e.what());
+        }
+    }
 
     // 각 플레이어에게 개별 토큰 발급 후 GameStart 전송
-    // Phase 2: 토큰은 UUID만 생성 (Redis 저장은 Phase 3)
     for (const auto& pid : room->playerIds()) {
-        auto auth_token = generateUuid();
+        std::string auth_token;
+        if (session_store_) {
+            try {
+                auth_token = session_store_->createToken(pid, session_id);
+            } catch (const std::exception& e) {
+                spdlog::error("[Room] Token creation failed, player={}, error={}", pid, e.what());
+                auth_token = generateUuid();
+            }
+        } else {
+            auth_token = generateUuid();
+        }
 
         sos::room::Envelope env;
         auto* game_start = env.mutable_game_start();
         game_start->set_session_id(session_id);
         game_start->set_auth_token(auth_token);
-        game_start->set_game_server_host("127.0.0.1");
-        game_start->set_game_server_port(7979);
+        game_start->set_game_server_host(game_server_host_);
+        game_start->set_game_server_port(game_server_port_);
 
         sendTo(pid, env);
     }
@@ -286,6 +311,90 @@ void RoomManager::handleDisconnect(const std::string& player_id) {
     handleLeaveRoom(player_id);
     unregisterSession(player_id);
     spdlog::info("[Room] Player disconnected, player_id={}", player_id);
+}
+
+void RoomManager::handleSlotReleased(const std::string& player_id,
+                                      const std::string& session_id) {
+    auto player_it = player_to_room_.find(player_id);
+    if (player_it == player_to_room_.end()) return;
+
+    auto room_id = player_it->second;
+    auto room_it = rooms_.find(room_id);
+    if (room_it == rooms_.end()) {
+        player_to_room_.erase(player_id);
+        sessions_.erase(player_id);
+        return;
+    }
+
+    auto& room = room_it->second;
+
+    // session_id가 제공된 경우 일치 여부 검증
+    if (!session_id.empty() && room->sessionId() != session_id) {
+        spdlog::warn("[Room] SlotReleased session mismatch, player={}, expected={}, got={}",
+                     player_id, room->sessionId(), session_id);
+        return;
+    }
+
+    room->removePlayer(player_id);
+    player_to_room_.erase(player_id);
+    sessions_.erase(player_id);
+
+    spdlog::info("[Room] Slot released, player_id={}, room_id={}, remaining={}",
+                 player_id, room_id, room->playerCount());
+
+    if (room->playerCount() == 0) {
+        if (session_store_) {
+            try {
+                session_store_->unregisterGameSession(room->sessionId());
+            } catch (const std::exception& e) {
+                spdlog::error("[Room] Failed to unregister game session, error={}", e.what());
+            }
+        }
+        rooms_.erase(room_it);
+        spdlog::info("[Room] Game ended, room removed, room_id={}, session_id={}",
+                     room_id, session_id);
+    }
+}
+
+void RoomManager::handleGameServerDisconnect() {
+    std::vector<std::string> in_game_room_ids;
+    for (const auto& [room_id, room] : rooms_) {
+        if (room->state() == sos::room::ROOM_IN_GAME) {
+            in_game_room_ids.push_back(room_id);
+        }
+    }
+
+    for (const auto& room_id : in_game_room_ids) {
+        auto room_it = rooms_.find(room_id);
+        if (room_it == rooms_.end()) continue;
+
+        auto& room = room_it->second;
+
+        sos::room::Envelope envelope;
+        auto* reject = envelope.mutable_reject();
+        reject->set_reason(sos::room::RejectResponse::ROOM_CLOSED);
+        reject->set_message("Game server disconnected");
+        broadcastToRoom(*room, envelope);
+
+        if (session_store_) {
+            try {
+                session_store_->unregisterGameSession(room->sessionId());
+            } catch (const std::exception& e) {
+                spdlog::error("[Room] Failed to unregister game session, error={}", e.what());
+            }
+        }
+
+        for (const auto& pid : room->playerIds()) {
+            player_to_room_.erase(pid);
+        }
+
+        rooms_.erase(room_it);
+    }
+
+    if (!in_game_room_ids.empty()) {
+        spdlog::warn("[Room] Game server disconnected, cleaned up {} rooms",
+                     in_game_room_ids.size());
+    }
 }
 
 size_t RoomManager::roomCount() const {

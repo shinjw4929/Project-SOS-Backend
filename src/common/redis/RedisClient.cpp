@@ -55,4 +55,20 @@ bool RedisClient::expire(const std::string& key, std::chrono::seconds ttl) {
     return impl_->redis.expire(key, ttl);
 }
 
+int64_t RedisClient::sadd(const std::string& key, const std::string& member) {
+    return impl_->redis.sadd(key, member);
+}
+
+int64_t RedisClient::srem(const std::string& key, const std::string& member) {
+    return impl_->redis.srem(key, member);
+}
+
+int64_t RedisClient::scard(const std::string& key) {
+    return impl_->redis.scard(key);
+}
+
+bool RedisClient::exists(const std::string& key) {
+    return impl_->redis.exists(key) > 0;
+}
+
 } // namespace sos

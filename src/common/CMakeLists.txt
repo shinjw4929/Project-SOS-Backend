@@ -34,6 +34,7 @@ add_library(sos_common STATIC
     util/Config.cpp
     util/UuidGenerator.cpp
     redis/RedisClient.cpp
+    redis/SessionStore.cpp
     ratelimit/RateLimiter.cpp
 )
 

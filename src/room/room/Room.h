@@ -40,6 +40,8 @@ public:
     const std::string& roomName() const { return room_name_; }
     const std::string& hostId() const { return host_id_; }
     uint32_t maxPlayers() const { return max_players_; }
+    const std::string& sessionId() const { return session_id_; }
+    void setSessionId(std::string session_id) { session_id_ = std::move(session_id); }
 
     std::vector<std::string> playerIds() const;
 
@@ -49,6 +51,7 @@ private:
     std::string host_id_;
     std::string host_name_;
     uint32_t max_players_;
+    std::string session_id_;
     sos::room::RoomState state_;
     std::vector<PlayerData> players_;
 };

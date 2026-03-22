@@ -6,6 +6,8 @@ add_executable(room-server
     server/ClientSession.cpp
     room/Room.cpp
     room/RoomManager.cpp
+    internal/GameServerChannel.cpp
+    internal/GameServerSession.cpp
 )
 
 target_include_directories(room-server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")

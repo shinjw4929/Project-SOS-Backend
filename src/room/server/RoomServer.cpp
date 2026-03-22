@@ -8,11 +8,15 @@ namespace sos {
 
 RoomServer::RoomServer(boost::asio::io_context& io_context,
                        uint16_t port,
-                       std::shared_ptr<RoomManager> room_manager)
+                       std::shared_ptr<RoomManager> room_manager,
+                       RateLimiter* rate_limiter,
+                       std::chrono::seconds heartbeat_timeout)
     : io_context_(io_context)
     , acceptor_(io_context, boost::asio::ip::tcp::endpoint(
           boost::asio::ip::tcp::v4(), port))
     , room_manager_(std::move(room_manager))
+    , rate_limiter_(rate_limiter)
+    , heartbeat_timeout_(heartbeat_timeout)
 {
 }
 
@@ -38,7 +42,7 @@ void RoomServer::doAccept() {
             }
 
             auto session = std::make_shared<ClientSession>(
-                std::move(socket), room_manager_);
+                std::move(socket), room_manager_, rate_limiter_, heartbeat_timeout_);
             session->start();
 
             doAccept();

@@ -1,14 +1,20 @@
 #include "ClientSession.h"
 #include "room/RoomManager.h"
+#include "ratelimit/RateLimiter.h"
 
 #include <spdlog/spdlog.h>
 
 namespace sos {
 
 ClientSession::ClientSession(boost::asio::ip::tcp::socket socket,
-                             std::shared_ptr<RoomManager> room_manager)
+                             std::shared_ptr<RoomManager> room_manager,
+                             RateLimiter* rate_limiter,
+                             std::chrono::seconds heartbeat_timeout)
     : socket_(std::move(socket))
+    , heartbeat_timer_(socket_.get_executor())
     , room_manager_(std::move(room_manager))
+    , rate_limiter_(rate_limiter)
+    , heartbeat_timeout_(heartbeat_timeout)
 {
 }
 
@@ -17,7 +23,13 @@ ClientSession::~ClientSession() {
 }
 
 void ClientSession::start() {
+    try {
+        remote_ip_ = socket_.remote_endpoint().address().to_string();
+    } catch (...) {
+        remote_ip_ = "unknown";
+    }
     spdlog::info("[Room] Client connected, remote={}", remoteAddress());
+    resetHeartbeatTimer();
     doRead();
 }
 
@@ -36,6 +48,22 @@ std::string ClientSession::remoteAddress() const {
     } catch (...) {
         return "unknown";
     }
+}
+
+// ============================================================
+// Heartbeat Timer
+// ============================================================
+
+void ClientSession::resetHeartbeatTimer() {
+    if (heartbeat_timeout_.count() <= 0) return;
+
+    heartbeat_timer_.expires_after(heartbeat_timeout_);
+    auto self = shared_from_this();
+    heartbeat_timer_.async_wait([this, self](boost::system::error_code ec) {
+        if (ec) return; // cancelled or error
+        spdlog::warn("[Room] Heartbeat timeout, remote={}", remoteAddress());
+        close();
+    });
 }
 
 // ============================================================
@@ -61,8 +89,10 @@ void ClientSession::doRead() {
 
             while (auto envelope = codec_.tryDecode()) {
                 processMessage(*envelope);
+                if (closed_) return;
             }
 
+            resetHeartbeatTimer();
             doRead();
         });
 }
@@ -94,6 +124,26 @@ void ClientSession::doWrite() {
 // ============================================================
 
 void ClientSession::processMessage(const sos::room::Envelope& envelope) {
+    // Rate limit 검사
+    if (rate_limiter_) {
+        try {
+            if (!rate_limiter_->allow(remote_ip_)) {
+                spdlog::warn("[Room] Rate limited, remote={}", remoteAddress());
+                sos::room::Envelope reject_env;
+                auto* reject = reject_env.mutable_reject();
+                reject->set_reason(sos::room::RejectResponse::RATE_LIMITED);
+                reject->set_message("Too many requests");
+                send(reject_env);
+                close();
+                return;
+            }
+        } catch (const std::exception& e) {
+            // Redis 장애 시 fail-open (요청 허용)
+            spdlog::error("[Room] Rate limit check failed, remote={}, error={}",
+                         remoteAddress(), e.what());
+        }
+    }
+
     using Payload = sos::room::Envelope;
 
     switch (envelope.payload_case()) {
@@ -128,7 +178,8 @@ void ClientSession::processMessage(const sos::room::Envelope& envelope) {
             break;
 
         case Payload::kHeartbeat:
-            // Phase 3에서 타임아웃 처리 구현 예정
+            // 타이머 리셋은 doRead()에서 처리
+            spdlog::debug("[Room] Heartbeat received, remote={}", remoteAddress());
             break;
 
         default:
@@ -141,6 +192,8 @@ void ClientSession::processMessage(const sos::room::Envelope& envelope) {
 void ClientSession::close() {
     if (closed_) return;
     closed_ = true;
+
+    heartbeat_timer_.cancel();
 
     boost::system::error_code ec;
     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);

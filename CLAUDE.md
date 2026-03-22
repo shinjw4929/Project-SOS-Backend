@@ -37,7 +37,16 @@ Project-SOS-Backend는 Project-SOS (멀티플레이어 RTS 게임)의 백엔드 
 - **Room Server**: C++ / Boost.Asio / TCP + Protobuf (방 관리/게임 시작)
 - **Chat Server**: C++ / Boost.Asio / TCP + Protobuf (인게임 채팅)
 - **Logging Pipeline**: Vector → ClickHouse → Grafana (전 서비스 통합 로그)
-- **공통 운영 저장소**: Redis (세션, 토큰, 캐시)
+- **공통 운영 저장소**: Redis (세션, 토큰, Rate Limit)
+
+### Redis 키 구조
+
+| 키 패턴 | 타입 | TTL | 용도 |
+|---------|------|-----|------|
+| `token:{uuid}` | STRING (JSON) | 60초 | 입장 토큰 (`{player_id, session_id}`) |
+| `active_sessions` | SET | - | 진행 중인 게임 세션 ID |
+| `game_server:{server_id}` | STRING | 90초 | 게임 서버 하트비트 |
+| `rate:{ip}` | STRING | 10초 | Rate Limit 카운터 |
 
 ## Build & Development
 
@@ -86,7 +95,8 @@ Project-SOS-Backend/
 │   ├── common/               # 공유 라이브러리 (protocol, redis, ratelimit, util)
 │   ├── room/                 # Room Server (방 관리/게임 시작)
 │   │   ├── server/           # RoomServer (TCP acceptor), ClientSession
-│   │   └── room/             # Room, RoomManager
+│   │   ├── room/             # Room, RoomManager
+│   │   └── internal/         # GameServerChannel (:8081), GameServerSession
 │   └── chat/                 # Chat Server (채팅)
 ├── infra/
 │   ├── clickhouse/
@@ -196,7 +206,7 @@ C++ Server 예시:
 src/
 ├── common/          # STATIC 라이브러리 (공유)
 │   ├── protocol/    # Protobuf 직렬화/역직렬화
-│   ├── redis/       # Redis 클라이언트 래퍼
+│   ├── redis/       # Redis 클라이언트 래퍼, SessionStore (토큰/세션 관리)
 │   ├── ratelimit/   # Rate limiting
 │   └── util/        # 공통 유틸리티
 ├── room/            # Room Server 실행 파일

@@ -26,6 +26,11 @@ public:
     int64_t incr(const std::string& key);
     bool expire(const std::string& key, std::chrono::seconds ttl);
 
+    int64_t sadd(const std::string& key, const std::string& member);
+    int64_t srem(const std::string& key, const std::string& member);
+    int64_t scard(const std::string& key);
+    bool exists(const std::string& key);
+
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
