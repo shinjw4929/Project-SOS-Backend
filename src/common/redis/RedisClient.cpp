@@ -71,4 +71,42 @@ bool RedisClient::exists(const std::string& key) {
     return impl_->redis.exists(key) > 0;
 }
 
+// HASH
+
+void RedisClient::hset(const std::string& key, const std::string& field, const std::string& value) {
+    impl_->redis.hset(key, field, value);
+}
+
+std::optional<std::string> RedisClient::hget(const std::string& key, const std::string& field) {
+    auto result = impl_->redis.hget(key, field);
+    if (result) return *result;
+    return std::nullopt;
+}
+
+std::unordered_map<std::string, std::string> RedisClient::hgetall(const std::string& key) {
+    std::unordered_map<std::string, std::string> result;
+    impl_->redis.hgetall(key, std::inserter(result, result.end()));
+    return result;
+}
+
+bool RedisClient::hdel(const std::string& key, const std::string& field) {
+    return impl_->redis.hdel(key, field) > 0;
+}
+
+// LIST
+
+int64_t RedisClient::lpush(const std::string& key, const std::string& value) {
+    return impl_->redis.lpush(key, value);
+}
+
+void RedisClient::ltrim(const std::string& key, int64_t start, int64_t stop) {
+    impl_->redis.ltrim(key, start, stop);
+}
+
+std::vector<std::string> RedisClient::lrange(const std::string& key, int64_t start, int64_t stop) {
+    std::vector<std::string> result;
+    impl_->redis.lrange(key, start, stop, std::back_inserter(result));
+    return result;
+}
+
 } // namespace sos

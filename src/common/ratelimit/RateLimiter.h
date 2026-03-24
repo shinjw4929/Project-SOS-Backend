@@ -9,7 +9,8 @@ class RedisClient;
 
 class RateLimiter {
 public:
-    RateLimiter(RedisClient& redis, int max_requests, std::chrono::seconds window);
+    RateLimiter(RedisClient& redis, int max_requests, std::chrono::seconds window,
+                std::string key_prefix = "rate:");
 
     // true = 허용, false = 제한 초과
     bool allow(const std::string& identifier);
@@ -18,6 +19,7 @@ private:
     RedisClient& redis_;
     int max_requests_;
     std::chrono::seconds window_;
+    std::string key_prefix_;
 };
 
 } // namespace sos

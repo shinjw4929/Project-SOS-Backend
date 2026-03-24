@@ -46,7 +46,12 @@ Project-SOS-Backend는 Project-SOS (멀티플레이어 RTS 게임)의 백엔드 
 | `token:{uuid}` | STRING (JSON) | 60초 | 입장 토큰 (`{player_id, session_id}`) |
 | `active_sessions` | SET | - | 진행 중인 게임 세션 ID |
 | `game_server:{server_id}` | STRING | 90초 | 게임 서버 하트비트 |
-| `rate:{ip}` | STRING | 10초 | Rate Limit 카운터 |
+| `rate:{ip}` | STRING | 10초 | Room Rate Limit 카운터 |
+| `chat:rate:{player_id}` | STRING | 5초 | Chat Rate Limit 카운터 |
+| `chat:session:{session_id}` | HASH | 7200초 | 게임 세션 플레이어 매핑 (player_id -> player_name) |
+| `chat:player:{player_id}` | STRING | 7200초 | 플레이어-세션 매핑 |
+| `chat:name:{player_id}` | STRING | 7200초 | 플레이어 표시명 |
+| `chat:history:{session_id}:ALL` | LIST | 7200초 | 세션 채팅 히스토리 (최근 20개) |
 
 ## Build & Development
 
@@ -96,8 +101,11 @@ Project-SOS-Backend/
 │   ├── room/                 # Room Server (방 관리/게임 시작)
 │   │   ├── server/           # RoomServer (TCP acceptor), ClientSession
 │   │   ├── room/             # Room, RoomManager
-│   │   └── internal/         # GameServerChannel (:8081), GameServerSession
+│   │   └── internal/         # GameServerChannel (:8081), GameServerSession, ChatServerChannel
 │   └── chat/                 # Chat Server (채팅)
+│       ├── server/           # ChatServer (TCP acceptor), ChatSession
+│       ├── channel/          # ChannelManager (로비/세션 채널)
+│       └── internal/         # InternalChannel (:8083), InternalSession
 ├── infra/
 │   ├── clickhouse/
 │   │   ├── init.sql          # DB + 테이블 + MV 생성

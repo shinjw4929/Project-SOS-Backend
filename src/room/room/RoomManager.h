@@ -9,6 +9,7 @@
 
 namespace sos {
 
+class ChatServerChannel;
 class ClientSession;
 class Room;
 class SessionStore;
@@ -17,7 +18,8 @@ class RoomManager {
 public:
     RoomManager(uint32_t max_rooms, uint32_t max_players_per_room,
                 std::shared_ptr<SessionStore> session_store,
-                std::string game_server_host, uint16_t game_server_port);
+                std::string game_server_host, uint16_t game_server_port,
+                std::shared_ptr<ChatServerChannel> chat_channel = nullptr);
 
     void registerSession(const std::string& player_id, std::shared_ptr<ClientSession> session);
     void unregisterSession(const std::string& player_id);
@@ -50,6 +52,7 @@ private:
     uint32_t max_rooms_;
     uint32_t max_players_per_room_;
     std::shared_ptr<SessionStore> session_store_;
+    std::shared_ptr<ChatServerChannel> chat_channel_;
     std::string game_server_host_;
     uint16_t game_server_port_;
 

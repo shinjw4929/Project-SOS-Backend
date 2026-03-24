@@ -5,6 +5,7 @@
 #include "ratelimit/RateLimiter.h"
 #include "server/RoomServer.h"
 #include "internal/GameServerChannel.h"
+#include "internal/ChatServerChannel.h"
 #include "room/RoomManager.h"
 
 #include <boost/asio.hpp>
@@ -31,6 +32,8 @@ int main(int argc, char* argv[]) {
     uint32_t rate_limit_window_seconds = 10;
     std::string game_server_host = "127.0.0.1";
     uint16_t game_server_port = 7979;
+    std::string chat_server_host = "127.0.0.1";
+    uint16_t chat_server_port = 8083;
 
     std::string config_path = (argc > 1) ? argv[1] : "config/server_config.json";
     try {
@@ -49,6 +52,8 @@ int main(int argc, char* argv[]) {
         rate_limit_window_seconds = config.rateLimitWindowSeconds();
         game_server_host = config.gameServerHost();
         game_server_port = config.gameServerPort();
+        chat_server_host = config.chatServerHost();
+        chat_server_port = config.chatServerPort();
     } catch (const std::exception&) {
         spdlog::info("[Room] Config file not found, using defaults");
     }
@@ -70,10 +75,14 @@ int main(int argc, char* argv[]) {
 
     boost::asio::io_context io_context;
 
+    // Chat Server 채널 (Room -> Chat :8083)
+    auto chat_channel = std::make_shared<sos::ChatServerChannel>(
+        io_context, chat_server_host, chat_server_port);
+
     // Room Manager
     auto room_manager = std::make_shared<sos::RoomManager>(
         max_rooms, max_players_per_room,
-        session_store, game_server_host, game_server_port);
+        session_store, game_server_host, game_server_port, chat_channel);
 
     // 클라이언트 TCP 서버 (:8080)
     sos::RoomServer server(io_context, room_port, room_manager,
@@ -89,10 +98,12 @@ int main(int argc, char* argv[]) {
         spdlog::info("[Room] Signal {} received, shutting down...", signal_number);
         server.stop();
         internal_channel.stop();
+        chat_channel->stop();
     });
 
     server.start();
     internal_channel.start();
+    chat_channel->start();
     spdlog::info("[Room] Room Server started, client_port={}, internal_port={}, "
                  "max_rooms={}, max_players={}",
                  room_port, internal_port, max_rooms, max_players_per_room);

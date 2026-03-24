@@ -2,6 +2,7 @@
 #include "Room.h"
 #include "server/ClientSession.h"
 #include "redis/SessionStore.h"
+#include "internal/ChatServerChannel.h"
 #include "util/UuidGenerator.h"
 
 #include <spdlog/spdlog.h>
@@ -10,10 +11,12 @@ namespace sos {
 
 RoomManager::RoomManager(uint32_t max_rooms, uint32_t max_players_per_room,
                          std::shared_ptr<SessionStore> session_store,
-                         std::string game_server_host, uint16_t game_server_port)
+                         std::string game_server_host, uint16_t game_server_port,
+                         std::shared_ptr<ChatServerChannel> chat_channel)
     : max_rooms_(max_rooms)
     , max_players_per_room_(max_players_per_room)
     , session_store_(std::move(session_store))
+    , chat_channel_(std::move(chat_channel))
     , game_server_host_(std::move(game_server_host))
     , game_server_port_(game_server_port)
 {
@@ -275,6 +278,15 @@ void RoomManager::handleStartGame(const std::string& player_id) {
         sendTo(pid, env);
     }
 
+    // Chat Server에 SessionCreated 전송
+    if (chat_channel_) {
+        std::vector<std::pair<std::string, std::string>> player_list;
+        for (const auto& player : room->players()) {
+            player_list.emplace_back(player.player_id, player.player_name);
+        }
+        chat_channel_->sendSessionCreated(session_id, player_list);
+    }
+
     spdlog::info("[Room] Game started, room_id={}, session_id={}, players={}",
                  player_it->second, session_id, room->playerCount());
 }
@@ -343,13 +355,21 @@ void RoomManager::handleSlotReleased(const std::string& player_id,
                  player_id, room_id, room->playerCount());
 
     if (room->playerCount() == 0) {
+        auto ended_session_id = room->sessionId();
+
         if (session_store_) {
             try {
-                session_store_->unregisterGameSession(room->sessionId());
+                session_store_->unregisterGameSession(ended_session_id);
             } catch (const std::exception& e) {
                 spdlog::error("[Room] Failed to unregister game session, error={}", e.what());
             }
         }
+
+        // Chat Server에 SessionEnded 전송
+        if (chat_channel_ && !ended_session_id.empty()) {
+            chat_channel_->sendSessionEnded(ended_session_id);
+        }
+
         rooms_.erase(room_it);
         spdlog::info("[Room] Game ended, room removed, room_id={}, session_id={}",
                      room_id, session_id);
@@ -376,12 +396,19 @@ void RoomManager::handleGameServerDisconnect() {
         reject->set_message("Game server disconnected");
         broadcastToRoom(*room, envelope);
 
+        auto ended_session_id = room->sessionId();
+
         if (session_store_) {
             try {
-                session_store_->unregisterGameSession(room->sessionId());
+                session_store_->unregisterGameSession(ended_session_id);
             } catch (const std::exception& e) {
                 spdlog::error("[Room] Failed to unregister game session, error={}", e.what());
             }
+        }
+
+        // Chat Server에 SessionEnded 전송
+        if (chat_channel_ && !ended_session_id.empty()) {
+            chat_channel_->sendSessionEnded(ended_session_id);
         }
 
         for (const auto& pid : room->playerIds()) {

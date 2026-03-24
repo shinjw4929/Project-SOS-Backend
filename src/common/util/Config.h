@@ -33,6 +33,18 @@ public:
     std::string gameServerHost() const;
     uint16_t gameServerPort() const;
 
+    // Chat Server
+    uint16_t chatPort() const;
+    uint16_t chatInternalPort() const;
+    uint32_t chatHeartbeatTimeoutSeconds() const;
+    uint32_t chatRateLimitMax() const;
+    uint32_t chatRateLimitWindowSeconds() const;
+    uint32_t chatMaxMessageLength() const;
+    uint32_t chatHistorySize() const;
+    uint32_t chatSessionTtlSeconds() const;
+    std::string chatServerHost() const;
+    uint16_t chatServerPort() const;
+
 private:
     nlohmann::json data_;
 };

@@ -28,4 +28,16 @@ uint32_t Config::rateLimitWindowSeconds() const { return get<uint32_t>("rate_lim
 std::string Config::gameServerHost() const { return get<std::string>("game_server_host", "127.0.0.1"); }
 uint16_t Config::gameServerPort() const { return get<uint16_t>("game_server_port", 7979); }
 
+// Chat Server
+uint16_t Config::chatPort() const { return get<uint16_t>("chat_port", 8082); }
+uint16_t Config::chatInternalPort() const { return get<uint16_t>("chat_internal_port", 8083); }
+uint32_t Config::chatHeartbeatTimeoutSeconds() const { return get<uint32_t>("chat_heartbeat_timeout_seconds", 90); }
+uint32_t Config::chatRateLimitMax() const { return get<uint32_t>("chat_rate_limit_max", 10); }
+uint32_t Config::chatRateLimitWindowSeconds() const { return get<uint32_t>("chat_rate_limit_window_seconds", 5); }
+uint32_t Config::chatMaxMessageLength() const { return get<uint32_t>("chat_max_message_length", 200); }
+uint32_t Config::chatHistorySize() const { return get<uint32_t>("chat_history_size", 20); }
+uint32_t Config::chatSessionTtlSeconds() const { return get<uint32_t>("chat_session_ttl_seconds", 7200); }
+std::string Config::chatServerHost() const { return get<std::string>("chat_server_host", "127.0.0.1"); }
+uint16_t Config::chatServerPort() const { return get<uint16_t>("chat_server_port", 8083); }
+
 } // namespace sos

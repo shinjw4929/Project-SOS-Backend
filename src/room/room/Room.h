@@ -44,6 +44,7 @@ public:
     void setSessionId(std::string session_id) { session_id_ = std::move(session_id); }
 
     std::vector<std::string> playerIds() const;
+    const std::vector<PlayerData>& players() const { return players_; }
 
 private:
     std::string room_id_;

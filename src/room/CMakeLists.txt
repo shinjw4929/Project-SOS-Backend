@@ -8,6 +8,7 @@ add_executable(room-server
     room/RoomManager.cpp
     internal/GameServerChannel.cpp
     internal/GameServerSession.cpp
+    internal/ChatServerChannel.cpp
 )
 
 target_include_directories(room-server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")

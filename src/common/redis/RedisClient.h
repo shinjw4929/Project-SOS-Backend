@@ -5,6 +5,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace sos {
 
@@ -30,6 +32,17 @@ public:
     int64_t srem(const std::string& key, const std::string& member);
     int64_t scard(const std::string& key);
     bool exists(const std::string& key);
+
+    // HASH
+    void hset(const std::string& key, const std::string& field, const std::string& value);
+    std::optional<std::string> hget(const std::string& key, const std::string& field);
+    std::unordered_map<std::string, std::string> hgetall(const std::string& key);
+    bool hdel(const std::string& key, const std::string& field);
+
+    // LIST
+    int64_t lpush(const std::string& key, const std::string& value);
+    void ltrim(const std::string& key, int64_t start, int64_t stop);
+    std::vector<std::string> lrange(const std::string& key, int64_t start, int64_t stop);
 
 private:
     struct Impl;
