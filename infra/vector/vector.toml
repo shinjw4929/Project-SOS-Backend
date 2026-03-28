@@ -65,7 +65,7 @@ svc = get!(value: .label, path: ["vector.service"])
 
 parsed, err = parse_regex(
   .message,
-  r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (?P<level>\w+)\s+\| \[(?P<category>\w+)\] (?P<msg>.*)'
+  r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (?P<level>\w+)\s+\| \[(?P<category>[\w:]+)\] (?P<msg>.*)'
 )
 if err != null { abort }
 

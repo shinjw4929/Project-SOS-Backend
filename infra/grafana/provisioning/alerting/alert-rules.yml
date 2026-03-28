@@ -1,0 +1,145 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: SOS-Backend-Alerts
+    folder: Project-SOS
+    interval: 1m
+    rules:
+      - uid: error-rate-spike
+        title: "Error Rate Spike"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: clickhouse-ds
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              rawSql: >
+                SELECT count() AS error_count
+                FROM project_sos.service_events
+                WHERE timestamp >= now() - INTERVAL 5 MINUTE
+                AND level = 'ERROR'
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [10] }
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "5분간 에러 다수 발생"
+
+      - uid: room-creation-failure
+        title: "Room Creation Failure"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: clickhouse-ds
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              rawSql: >
+                SELECT count() AS error_count
+                FROM project_sos.service_events
+                WHERE timestamp >= now() - INTERVAL 5 MINUTE
+                AND service = 'room'
+                AND level = 'ERROR'
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [5] }
+        for: 3m
+        labels: { severity: warning }
+        annotations:
+          summary: "Room Server 에러 다수 발생"
+
+      - uid: redis-connection-error
+        title: "Redis Connection Error"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: clickhouse-ds
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              rawSql: >
+                SELECT count() AS error_count
+                FROM project_sos.service_events
+                WHERE timestamp >= now() - INTERVAL 5 MINUTE
+                AND level IN ('WARNING', 'ERROR')
+                AND (message LIKE '%Redis%' OR message LIKE '%redis%')
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [3] }
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Redis 연결 에러 발생"
+
+      - uid: chat-server-disconnected
+        title: "Chat Server Disconnected"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: clickhouse-ds
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              rawSql: >
+                SELECT count() AS error_count
+                FROM project_sos.service_events
+                WHERE timestamp >= now() - INTERVAL 5 MINUTE
+                AND category = 'Room:Chat'
+                AND level IN ('WARNING', 'ERROR')
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [3] }
+        for: 3m
+        labels: { severity: warning }
+        annotations:
+          summary: "Chat Server 연결 이상 감지"
+
+      - uid: internal-channel-error
+        title: "Internal Channel Error"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: clickhouse-ds
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              rawSql: >
+                SELECT count() AS error_count
+                FROM project_sos.service_events
+                WHERE timestamp >= now() - INTERVAL 5 MINUTE
+                AND category IN ('Room:Internal', 'Chat:Internal')
+                AND level IN ('WARNING', 'ERROR')
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [3] }
+        for: 3m
+        labels: { severity: warning }
+        annotations:
+          summary: "내부 채널 에러 발생"

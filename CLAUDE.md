@@ -115,11 +115,20 @@ Project-SOS-Backend/
 │   └── grafana/
 │       ├── datasources.yml   # ClickHouse 데이터소스
 │       ├── dashboards.yml    # 대시보드 프로비저닝
-│       └── dashboards/       # JSON 대시보드 파일
+│       ├── dashboards/       # JSON 대시보드 파일
+│       └── provisioning/alerting/  # 알림 규칙 프로비저닝
 ├── tests/                    # Catch2 유닛 테스트
 ├── docs/
-│   ├── Internal/구현기록/     # 구현 완료 기록 (gitignore)
-│   └── 계획/                  # 구축 계획 문서
+│   ├── Documentation-Checklist.md  # 문서 관리 규칙 + 매핑 테이블
+│   ├── Checklists/            # 스킬 공유 참조 (패턴 탐색, 코드 리뷰)
+│   ├── Systems/               # 모듈별 상세 문서 (common, Room, Chat, 인프라)
+│   ├── Plans/                 # 구현 계획 + Completed/ 아카이브
+│   ├── Internal/Analysis/     # 분석 문서
+│   └── WorkLog/               # 날짜별 구현 기록
+├── config/
+│   └── server_config.json    # 서버 설정 기본값 템플릿
+├── Dockerfile                # 멀티 스테이지 멀티 타겟 (build-base -> room-server / chat-server)
+├── .dockerignore
 ├── docker-compose.yml
 ├── CMakeLists.txt            # 루트 빌드 설정
 ├── CMakePresets.json         # CMake 프리셋 (vcpkg 통합)
@@ -134,12 +143,14 @@ Project-SOS-Backend/
 
 ### Docker Compose Services
 
-| 서비스 | 이미지 | 포트 | 역할 |
-|--------|--------|------|------|
+| 서비스 | 이미지 / 빌드 | 포트 | 역할 |
+|--------|--------------|------|------|
 | Redis | `redis:7-alpine` | 6379 | Room/Chat 운영 저장소 |
 | ClickHouse | `clickhouse/clickhouse-server:24.3` | 8123 (HTTP), 9000 (Native) | 로그 저장소 |
 | Vector | `timberio/vector:0.41.1-debian` | - | 로그 수집 + 파싱 + 전송 |
 | Grafana | `grafana/grafana:11.4.0` | 3000 | 대시보드 + 시각화 |
+| room-server | `Dockerfile` target: room-server | 8080, 8081 | Room Server (C++) |
+| chat-server | `Dockerfile` target: chat-server | 8082, 8083 | Chat Server (C++) |
 
 ### Port Assignment
 
@@ -203,6 +214,8 @@ C++ Server 예시:
 |---------|------|
 | Service Overview | 로그 볼륨, 레벨/카테고리 분포, Warning/Error 테이블 |
 | Game Events | Wave 전환, 킬 카운트, 경제 이벤트, 적 스폰, 이동 경고, Hero 사망 |
+| Room Metrics | 방 생성/제거, 플레이어 입퇴장, 게임 시작, 토큰/세션, 내부 채널, 에러 |
+| Chat Metrics | 접속 추이, 인증, 세션 생성/종료, 채널별 메시지, Rate Limit, 내부 채널, 에러 |
 
 ---
 
@@ -256,40 +269,9 @@ src/
 
 ## Documentation
 
-### docs 폴더 구조
-```
-docs/
-├── 시스템 아키텍처.md              # 전체 백엔드 시스템 구조
-├── 로깅 파이프라인.md              # Vector → ClickHouse → Grafana 상세
-├── 계획/
-│   ├── 구현 우선순위.md             # Phase 1~6 구현 순서 및 의존성
-│   ├── 로깅/
-│   │   ├── 로깅 시스템 구축 계획.md
-│   │   └── 로깅 Tier2 ClickHouse Grafana.md
-│   ├── 채팅 서버/
-│   │   └── 채팅 서버 구축 계획.md
-│   └── 룸 서버/
-│       └── C++ 룸 서버 구축 계획.md
-```
+### 문서 관리
 
-### 문서 업데이트 규칙 (필수)
-**구현 완료 후 반드시 관련 문서를 업데이트해야 한다.**
-
-| 변경 유형 | 업데이트 대상 문서 |
-|----------|-------------------|
-| Docker Compose 변경 | 관련 구현기록 문서 |
-| ClickHouse 스키마 변경 | `docs/계획/로깅/` 관련 문서 |
-| Vector 설정 변경 | `docs/계획/로깅/` 관련 문서 |
-| Grafana 대시보드 변경 | `docs/계획/로깅/` 관련 문서 |
-| C++ 서버 코드 변경 | `docs/계획/채팅 서버/` 또는 `docs/계획/룸 서버/` |
-| Protobuf 변경 | 관련 서버 문서 |
-| 새 인프라 컴포넌트 추가 | `docs/구현기록/` 새 문서 작성 |
-
-**문서 작성 원칙**:
-1. **코드와 동기화**: 문서 내용이 실제 코드/설정과 일치해야 함
-2. **간결함 유지**: 핵심 구조와 설정값 중심으로 작성
-3. **예제 포함**: 복잡한 설정은 코드/명령어 예제로 설명
-4. **CLAUDE.md 동기화**: 주요 패턴/포트/서비스 변경 시 CLAUDE.md도 함께 업데이트
+문서 폴더 구조, 변경 유형별 업데이트 대상, 작성 원칙은 `docs/Documentation-Checklist.md`를 참조한다.
 
 ### 커밋 메시지 작성 가이드
 

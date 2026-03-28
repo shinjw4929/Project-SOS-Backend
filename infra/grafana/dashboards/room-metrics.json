@@ -1,0 +1,167 @@
+{
+  "uid": "room-metrics",
+  "title": "Room Metrics",
+  "tags": ["project-sos", "room"],
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": { "from": "now-3h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Room Log Volume (per minute)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, level, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' GROUP BY time, level ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "DEBUG" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "INFO" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "WARNING" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "ERROR" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Room Created / Removed",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Room created%', 'Created', message LIKE 'room removed%', 'Removed', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' AND (message LIKE 'Room created%' OR message LIKE 'room removed%') GROUP BY time, event_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Created" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Removed" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Player Join / Leave / Disconnect",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Player joined%', 'Joined', message LIKE 'Player left%', 'Left', message LIKE 'Player disconnected%', 'Disconnected', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' AND (message LIKE 'Player joined%' OR message LIKE 'Player left%' OR message LIKE 'Player disconnected%') GROUP BY time, event_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Joined" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Left" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Disconnected" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Game Started (per minute)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' AND message LIKE 'Game started%' GROUP BY time ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 30 },
+          "color": { "fixedColor": "purple", "mode": "fixed" }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Token / Session Events",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Token validated%', 'Token Valid', message LIKE 'Token invalid%' OR message LIKE 'Token expired%', 'Token Invalid', message LIKE 'Slot released%', 'Slot Released', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' AND (message LIKE 'Token%' OR message LIKE 'Slot released%') GROUP BY time, event_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Rate Limited Requests",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' AND message LIKE '%rate limit%' GROUP BY time ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 20 },
+          "color": { "fixedColor": "orange", "mode": "fixed" }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Internal Channel Status",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, level, category, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' AND category IN ('Room:Internal', 'Room:Chat') ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Room Server Errors",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, level, category, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'room' AND level IN ('WARNING', 'ERROR') ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39
+}

@@ -19,9 +19,9 @@ description: Plan 모드에서 생성된 구현 계획을 프로젝트 컨벤션
 ### 1단계: 프로젝트 컨텍스트 확인
 
 `docs/` 폴더에서 계획과 관련된 문서를 읽고 현재 시스템 구조를 파악한다:
-- `docs/구현기록/` - 기존 구현 내역
-- `docs/계획/` - 기존 계획 문서
-- 계획 내용과 관련된 기능별 문서
+- `docs/Systems/` - 모듈별 상세 문서
+- `docs/Plans/` - 기존 계획 문서
+- `docs/Checklists/review-code-checklist.md` - C++ 코드 리뷰 기준
 
 계획에서 언급된 기존 코드/설정이 실제로 존재하는지 Grep/Glob으로 확인한다.
 

@@ -1,0 +1,160 @@
+{
+  "uid": "chat-metrics",
+  "title": "Chat Metrics",
+  "tags": ["project-sos", "chat"],
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": { "from": "now-3h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Chat Log Volume (per minute)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, level, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' GROUP BY time, level ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "DEBUG" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "INFO" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "WARNING" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "ERROR" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Player Connect / Disconnect",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Client connected%', 'Connected', message LIKE 'Player disconnected%', 'Disconnected', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND (message LIKE 'Client connected%' OR message LIKE 'Player disconnected%') GROUP BY time, event_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Connected" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Disconnected" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Authentication Events",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE '%lobby auth%', 'Lobby Auth', message LIKE '%session auth%', 'Session Auth', 'Other') AS auth_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND (message LIKE '%lobby auth%' OR message LIKE '%session auth%') GROUP BY time, auth_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Session Created / Ended",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Session created%', 'Created', message LIKE 'Session ended%', 'Ended', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND (message LIKE 'Session created%' OR message LIKE 'Session ended%') GROUP BY time, event_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Created" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Ended" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Messages by Channel",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE '%channel=LOBBY%', 'LOBBY', message LIKE '%channel=ALL%', 'ALL', message LIKE '%channel=WHISPER%', 'WHISPER', 'Other') AS channel, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND message LIKE 'Message sent%' GROUP BY time, channel ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Rate Limited / Redis Errors",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE '%rate limit%', 'Rate Limited', message LIKE '%Redis%' OR message LIKE '%redis%', 'Redis Error', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND (message LIKE '%rate limit%' OR ((message LIKE '%Redis%' OR message LIKE '%redis%') AND level IN ('WARNING', 'ERROR'))) GROUP BY time, event_type ORDER BY time",
+          "refId": "A",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Rate Limited" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Redis Error" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Internal Channel Status",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, level, category, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND category = 'Chat:Internal' ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Chat Server Errors",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, level, category, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND level IN ('WARNING', 'ERROR') ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39
+}

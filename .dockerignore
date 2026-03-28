@@ -1,0 +1,13 @@
+build/
+cmake-build-*/
+.git/
+.env
+.idea/
+.vscode/
+docs/
+infra/
+tests/
+scripts/
+node_modules/
+vcpkg_installed/
+*.md

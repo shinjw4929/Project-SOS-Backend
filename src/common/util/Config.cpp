@@ -1,5 +1,6 @@
 #include "util/Config.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <stdexcept>
 
@@ -11,6 +12,19 @@ Config::Config(const std::string& filepath) {
         throw std::runtime_error("Config file not found: " + filepath);
     }
     data_ = nlohmann::json::parse(file);
+
+    // 환경변수 fallback (Docker 환경에서 설정 오버라이드)
+    if (auto* val = std::getenv("REDIS_HOST")) data_["redis_host"] = val;
+    if (auto* val = std::getenv("REDIS_PORT")) {
+        try { data_["redis_port"] = std::stoi(val); }
+        catch (const std::exception&) { /* 잘못된 값 무시, 기존 설정 유지 */ }
+    }
+    if (auto* val = std::getenv("REDIS_PASSWORD")) data_["redis_password"] = val;
+    if (auto* val = std::getenv("CHAT_SERVER_HOST")) data_["chat_server_host"] = val;
+    if (auto* val = std::getenv("CHAT_SERVER_PORT")) {
+        try { data_["chat_server_port"] = std::stoi(val); }
+        catch (const std::exception&) { /* 잘못된 값 무시, 기존 설정 유지 */ }
+    }
 }
 
 uint16_t Config::roomPort() const { return get<uint16_t>("room_port", 8080); }

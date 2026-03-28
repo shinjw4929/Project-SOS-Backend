@@ -14,17 +14,7 @@ allowed-tools: Read, Edit, Grep, Glob, Bash
 
 ### 2단계: 업데이트 대상 문서 결정
 
-변경 유형에 따라 대상 문서를 결정한다:
-
-| 변경 유형 | 업데이트 대상 문서 |
-|----------|-------------------|
-| Docker Compose 변경 | `docs/구현기록/` 관련 문서 |
-| ClickHouse 스키마 변경 | `docs/계획/로깅/` 관련 문서 |
-| Vector 설정 변경 | `docs/계획/로깅/` 관련 문서 |
-| Grafana 대시보드 변경 | `docs/계획/로깅/` 관련 문서 |
-| C++ 서버 코드 변경 | `docs/계획/채팅 서버/` 또는 `docs/계획/룸 서버/` |
-| Protobuf 변경 | 관련 서버 문서 |
-| 새 인프라 컴포넌트 추가 | `docs/구현기록/` 새 문서 작성 |
+`docs/Documentation-Checklist.md`의 매핑 테이블을 참조하여 대상 문서를 결정한다.
 
 ### 3단계: 대상 문서 읽기
 

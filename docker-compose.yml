@@ -57,6 +57,7 @@ services:
       - ./infra/grafana/datasources.yml:/etc/grafana/provisioning/datasources/ds.yml
       - ./infra/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./infra/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
     environment:
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       CH_PASSWORD: ${CH_PASSWORD:-dev123}
@@ -65,19 +66,40 @@ services:
         condition: service_healthy
 
   # === 게임 서비스 ===
-  # room-server:
-  #   build: ./src/room
-  #   ports: ["8080:8080", "8081:8081"]
-  #   depends_on: [redis]
-  #   labels:
-  #     vector.service: "room"
+  chat-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: chat-server
+    ports: ["8082:8082", "8083:8083"]
+    depends_on:
+      redis: { condition: service_healthy }
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devredis}
+    labels:
+      vector.service: "chat"
+    restart: unless-stopped
 
-  # chat-server:
-  #   build: ./src/chat
-  #   ports: ["8082:8082", "8083:8083"]
-  #   depends_on: [redis]
-  #   labels:
-  #     vector.service: "chat"
+  room-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: room-server
+    ports: ["8080:8080", "8081:8081"]
+    depends_on:
+      redis: { condition: service_healthy }
+      chat-server: { condition: service_started }
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devredis}
+      CHAT_SERVER_HOST: chat-server
+      CHAT_SERVER_PORT: 8083
+    labels:
+      vector.service: "room"
+    restart: unless-stopped
 
 volumes:
   redis_data:
