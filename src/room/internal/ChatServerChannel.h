@@ -29,7 +29,8 @@ public:
     void sendSessionEnded(const std::string& session_id);
 
 private:
-    void doConnect();
+    void doResolveAndConnect();
+    void doConnect(const boost::asio::ip::tcp::endpoint& endpoint);
     void scheduleReconnect();
     void doRead();
     void doWrite();
@@ -37,6 +38,7 @@ private:
     void close();
 
     boost::asio::io_context& io_context_;
+    boost::asio::ip::tcp::resolver resolver_;
     boost::asio::ip::tcp::socket socket_;
     boost::asio::steady_timer reconnect_timer_;
     std::string host_;

@@ -11,7 +11,7 @@ GameServerChannel::GameServerChannel(boost::asio::io_context& io_context,
                                      std::shared_ptr<RoomManager> room_manager)
     : io_context_(io_context)
     , acceptor_(io_context, boost::asio::ip::tcp::endpoint(
-          boost::asio::ip::make_address("127.0.0.1"), port))
+          boost::asio::ip::address_v4::any(), port))
     , session_store_(std::move(session_store))
     , room_manager_(std::move(room_manager))
 {

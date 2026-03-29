@@ -7,6 +7,7 @@ namespace sos {
 ChatServerChannel::ChatServerChannel(boost::asio::io_context& io_context,
                                      const std::string& host, uint16_t port)
     : io_context_(io_context)
+    , resolver_(io_context)
     , socket_(io_context)
     , reconnect_timer_(io_context)
     , host_(host)
@@ -15,7 +16,7 @@ ChatServerChannel::ChatServerChannel(boost::asio::io_context& io_context,
 }
 
 void ChatServerChannel::start() {
-    doConnect();
+    doResolveAndConnect();
 }
 
 void ChatServerChannel::stop() {
@@ -61,11 +62,26 @@ void ChatServerChannel::sendSessionEnded(const std::string& session_id) {
 // Connection Management
 // ============================================================
 
-void ChatServerChannel::doConnect() {
+void ChatServerChannel::doResolveAndConnect() {
     if (stopped_) return;
 
-    auto endpoint = boost::asio::ip::tcp::endpoint(
-        boost::asio::ip::make_address(host_), port_);
+    auto self = shared_from_this();
+    resolver_.async_resolve(host_, std::to_string(port_),
+        [this, self](boost::system::error_code ec,
+                     boost::asio::ip::tcp::resolver::results_type results) {
+            if (ec) {
+                spdlog::warn("[Room:Chat] Failed to resolve chat server, "
+                             "host={}, port={}, error={}", host_, port_, ec.message());
+                scheduleReconnect();
+                return;
+            }
+
+            doConnect(*results.begin());
+        });
+}
+
+void ChatServerChannel::doConnect(const boost::asio::ip::tcp::endpoint& endpoint) {
+    if (stopped_) return;
 
     auto self = shared_from_this();
     socket_.async_connect(endpoint,
@@ -91,9 +107,8 @@ void ChatServerChannel::scheduleReconnect() {
     auto self = shared_from_this();
     reconnect_timer_.async_wait([this, self](boost::system::error_code ec) {
         if (ec || stopped_) return;
-        // 소켓 재생성
         socket_ = boost::asio::ip::tcp::socket(io_context_);
-        doConnect();
+        doResolveAndConnect();
     });
 }
 

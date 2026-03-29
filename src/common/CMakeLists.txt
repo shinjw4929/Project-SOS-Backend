@@ -43,10 +43,16 @@ target_include_directories(sos_common PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+if(TARGET redis++::redis++)
+    set(REDIS_PLUS_PLUS_TARGET redis++::redis++)
+else()
+    set(REDIS_PLUS_PLUS_TARGET redis++::redis++_static)
+endif()
+
 target_link_libraries(sos_common PUBLIC
     protobuf::libprotobuf
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     hiredis::hiredis
-    redis++::redis++
+    ${REDIS_PLUS_PLUS_TARGET}
 )

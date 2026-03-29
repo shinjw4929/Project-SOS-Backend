@@ -10,7 +10,7 @@ InternalChannel::InternalChannel(boost::asio::io_context& io_context,
                                  std::shared_ptr<ChannelManager> channel_manager)
     : io_context_(io_context)
     , acceptor_(io_context, boost::asio::ip::tcp::endpoint(
-          boost::asio::ip::make_address("127.0.0.1"), port))
+          boost::asio::ip::address_v4::any(), port))
     , channel_manager_(std::move(channel_manager))
 {
 }
