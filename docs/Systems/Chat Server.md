@@ -70,9 +70,13 @@ ChatSend { channel, content, whisper_target }
 
 ```
 saveToHistory(session_id, ChatReceive):
-  LPUSH chat:history:{session_id}:ALL {직렬화된 메시지}
+  LPUSH chat:history:{session_id}:ALL {Protobuf 바이너리}
   LTRIM chat:history:{session_id}:ALL 0 19    # 최근 20개 유지
   EXPIRE chat:history:{session_id}:ALL 7200   # 2시간 TTL
+
+sendHistory(player_id, session_id):
+  LRANGE chat:history:{session_id}:ALL 0 19
+  역순 전송 (Redis LIST는 최신이 앞 → 오래된 메시지부터 전달)
 ```
 
 ---

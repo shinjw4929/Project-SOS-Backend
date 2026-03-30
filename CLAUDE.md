@@ -118,6 +118,7 @@ Project-SOS-Backend/
 │       ├── dashboards/       # JSON 대시보드 파일
 │       └── provisioning/alerting/  # 알림 규칙 프로비저닝
 ├── tests/                    # Catch2 유닛 테스트
+├── scripts/                  # Python E2E/부하 테스트
 ├── docs/
 │   ├── Documentation-Checklist.md  # 문서 관리 규칙 + 매핑 테이블
 │   ├── Checklists/            # 스킬 공유 참조 (패턴 탐색, 코드 리뷰)

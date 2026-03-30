@@ -120,6 +120,35 @@ Config config("config/server_config.json");
 uint16_t port = config.roomPort();  // 8080
 ```
 
+**설정 키 전체 목록**:
+
+| JSON 키 | accessor | 기본값 | 용도 |
+|---------|----------|--------|------|
+| `room_port` | `roomPort()` | 8080 | Room 클라이언트 포트 |
+| `internal_port` | `internalPort()` | 8081 | Game Server 내부 포트 |
+| `redis_host` | `redisHost()` | 127.0.0.1 | Redis 호스트 |
+| `redis_port` | `redisPort()` | 6379 | Redis 포트 |
+| `redis_password` | `redisPassword()` | (빈값) | Redis 비밀번호 |
+| `max_rooms` | `maxRooms()` | 100 | 최대 방 수 |
+| `max_players_per_room` | `maxPlayersPerRoom()` | 8 | 방당 최대 인원 |
+| `token_ttl_seconds` | `tokenTtlSeconds()` | 60 | 입장 토큰 TTL |
+| `heartbeat_timeout_seconds` | `heartbeatTimeoutSeconds()` | 30 | Room 하트비트 타임아웃 |
+| `game_server_heartbeat_ttl_seconds` | `gameServerHeartbeatTtlSeconds()` | 90 | Game Server 하트비트 TTL |
+| `rate_limit_max` | `rateLimitMax()` | 20 | Room Rate Limit 최대 요청 수 |
+| `rate_limit_window_seconds` | `rateLimitWindowSeconds()` | 10 | Room Rate Limit 윈도우 |
+| `game_server_host` | `gameServerHost()` | 127.0.0.1 | Game Server 호스트 |
+| `game_server_port` | `gameServerPort()` | 7979 | Game Server 포트 |
+| `chat_server_host` | `chatServerHost()` | 127.0.0.1 | Chat Server 내부 호스트 |
+| `chat_server_port` | `chatServerPort()` | 8083 | Chat Server 내부 포트 |
+| `chat_port` | `chatPort()` | 8082 | Chat 클라이언트 포트 |
+| `chat_internal_port` | `chatInternalPort()` | 8083 | Chat 내부 포트 |
+| `chat_heartbeat_timeout_seconds` | `chatHeartbeatTimeoutSeconds()` | 90 | Chat 하트비트 타임아웃 |
+| `chat_rate_limit_max` | `chatRateLimitMax()` | 10 | Chat Rate Limit 최대 요청 수 |
+| `chat_rate_limit_window_seconds` | `chatRateLimitWindowSeconds()` | 5 | Chat Rate Limit 윈도우 |
+| `chat_max_message_length` | `chatMaxMessageLength()` | 200 | 메시지 최대 바이트 |
+| `chat_history_size` | `chatHistorySize()` | 20 | 히스토리 보관 수 |
+| `chat_session_ttl_seconds` | `chatSessionTtlSeconds()` | 7200 | 세션 TTL (2시간) |
+
 **환경변수 오버라이드** (Docker 배포용):
 
 | 환경변수 | JSON 키 |
@@ -132,6 +161,7 @@ uint16_t port = config.roomPort();  // 8080
 
 - 제네릭 `get<T>(key, default)` + 이름 있는 accessor 메서드
 - 생성 후 읽기 전용 (const accessor)
+- 파일 없으면 기본값 사용 (크래시하지 않음)
 
 ---
 

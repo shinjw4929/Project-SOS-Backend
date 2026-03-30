@@ -16,15 +16,18 @@ docs/
 │   ├── common 라이브러리.md        # Codec, Logger, Config, Redis, RateLimiter
 │   ├── Room Server.md             # 방 관리, TCP, 내부 채널
 │   ├── Chat Server.md             # 채팅, 인증, 세션 채널
-│   └── 인프라 구성.md              # Docker, Redis, ClickHouse, Vector, Grafana
+│   ├── 인프라 구성.md              # Docker, Redis, ClickHouse, Vector, Grafana
+│   └── 테스트.md                  # Catch2 유닛, Python E2E/부하, Vector 파싱
 │
 ├── Plans/                         # 구현 계획
 │   ├── 계획-작성-가이드.md          # 계획 템플릿
-│   ├── 구현 우선순위.md             # Phase별 구현 순서
-│   ├── 룸 서버/                    # Room Server 설계 문서
-│   ├── 채팅 서버/                  # Chat Server 설계 문서
-│   ├── 로깅/                      # 로깅 시스템 설계 문서
 │   └── Completed/                 # 완료된 계획 아카이브
+│       ├── 구현 우선순위.md         # Phase별 구현 순서
+│       ├── 로깅/                   # 로깅 시스템 설계 문서
+│       ├── 로깅 통합 운영/          # 로깅 통합 운영 계획
+│       ├── 룸 서버/                # Room Server 설계 문서
+│       ├── 채팅 서버/              # Chat Server 설계 문서
+│       └── 하네스 엔지니어링/       # 하네스 엔지니어링 체크리스트
 │
 ├── Internal/
 │   └── Analysis/                  # 분석 문서
@@ -51,6 +54,7 @@ docs/
 | 포트 할당 변경 | `docs/시스템 아키텍처.md`, `CLAUDE.md` |
 | 새 인프라 컴포넌트 추가 | `docs/시스템 아키텍처.md`, `docs/Systems/인프라 구성.md` |
 | 새 서버/모듈 추가 | `docs/시스템 아키텍처.md`, 새 Systems 문서 작성 |
+| 테스트 추가/변경 | `docs/Systems/테스트.md` |
 
 ---
 
