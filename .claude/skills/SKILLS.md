@@ -21,7 +21,9 @@
 [독립 도구] 사용자 직접 호출
   analyze            의존성/영향도 분석 (읽기 전용)
   commit             커밋 메시지 작성 및 커밋
+  create-skill       기존 패턴 기반 새 스킬 생성 (200줄 제한)
   plan-edit          계획 부분 수정
+  port-skill         Unity 스킬을 백엔드로 포팅
   review-plan        계획 검토
 ```
 
@@ -147,7 +149,31 @@ Developer Command Prompt for VS 2022 필요. CTest + Catch2.
 /commit
 ```
 
-변경사항을 분석하여 한국어 커밋 메시지를 작성하고, 사용자 확인 후 커밋한다.
+변경사항을 주제별로 분류하여 각각 독립 커밋으로 작성한다. 사용자 확인 후 실행.
+
+### 12. Unity 스킬 포팅
+
+```
+/port-skill [Unity 스킬명]
+```
+
+Unity 프로젝트(Project-SOS)의 스킬을 읽어 C++ 백엔드 컨텍스트에 맞게 변환하여 작성한다.
+
+**예시:**
+- `/port-skill review-design` - Unity의 기획 검증 스킬을 백엔드용으로 포팅
+- `/port-skill sync-comments` - Unity의 주석 검토 스킬을 백엔드용으로 포팅
+
+### 13. 새 스킬 생성
+
+```
+/create-skill [스킬명 또는 목적]
+```
+
+기존 스킬 패턴을 분석하여 동일한 구조의 새 스킬을 생성한다. SKILLS.md 인덱스도 자동 업데이트.
+
+**예시:**
+- `/create-skill review-perf 성능 전문 리뷰`
+- `/create-skill gen-test 모듈별 테스트 자동 생성`
 
 ---
 
