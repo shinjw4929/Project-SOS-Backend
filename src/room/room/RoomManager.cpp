@@ -35,13 +35,13 @@ void RoomManager::unregisterSession(const std::string& player_id) {
 }
 
 void RoomManager::addLobbySession(const std::shared_ptr<ClientSession>& session) {
-    spdlog::debug("[Room] Lobby session added, remote={}", session->remoteAddress());
     lobby_sessions_[session.get()] = session;
+    spdlog::debug("[Room] Lobby session added, remote={}, lobby_count={}", session->remoteAddress(), lobby_sessions_.size());
 }
 
 void RoomManager::removeLobbySession(ClientSession* session) {
     if (lobby_sessions_.erase(session)) {
-        spdlog::debug("[Room] Lobby session removed");
+        spdlog::debug("[Room] Lobby session removed, lobby_count={}", lobby_sessions_.size());
     }
 }
 
@@ -577,7 +577,7 @@ void RoomManager::broadcastRoomListToLobby() {
         lobby_sessions_.erase(ptr);
     }
 
-    spdlog::debug("[Room] Lobby broadcast sent, lobby_sessions={}, waiting_rooms={}",
+    spdlog::debug("[Room] Lobby broadcast sent, lobby_count={}, waiting_rooms={}",
                   lobby_sessions_.size(), waiting_rooms.size());
 }
 

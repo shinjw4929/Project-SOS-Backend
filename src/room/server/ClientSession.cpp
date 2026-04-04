@@ -160,6 +160,7 @@ void ClientSession::processMessage(const sos::room::Envelope& envelope) {
             if (!player_id_.empty()) {
                 room_manager_->handleLeaveRoom(player_id_);
                 room_manager_->addLobbySession(shared_from_this());
+                room_manager_->notifyRoomListChanged();
             }
             break;
 
