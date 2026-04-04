@@ -131,10 +131,43 @@ Room Server가 Chat Server에 TCP 클라이언트로 접속. 단방향 메시징
 unordered_map<room_id, shared_ptr<Room>> rooms_;
 unordered_map<player_id, room_id> player_to_room_;
 unordered_map<player_id, weak_ptr<ClientSession>> sessions_;
+unordered_map<ClientSession*, weak_ptr<ClientSession>> lobby_sessions_;
 ```
 
 - 단일 io_context 스레드에서 실행 (mutex 불필요)
 - sessions_에 weak_ptr 사용 (순환 참조 방지)
+- lobby_sessions_: 방에 참가하지 않은 로비 상태 클라이언트 추적 (Push 브로드캐스트 대상)
+
+---
+
+## 방 목록 Push 브로드캐스트
+
+### 동작 방식
+
+방 목록에 영향을 주는 이벤트 발생 시, 로비 상태의 모든 클라이언트에게 `RoomListResponse`를 자동 Push한다.
+
+- **디바운스**: 300ms 타이머로 연속 이벤트를 하나의 브로드캐스트로 병합
+- **전송 내용**: ROOM_WAITING 상태 방의 첫 페이지 (page=0, size=20)
+- **프로토콜**: 기존 `RoomListResponse` 재사용 (새 메시지 없음)
+
+### 로비 세션 상태 전이
+
+| 이벤트 | 로비 동작 |
+|--------|----------|
+| 클라이언트 연결 | lobby 등록 |
+| CreateRoom/JoinRoom 성공 | lobby에서 제거 |
+| LeaveRoom / 호스트 퇴장 / 게임 서버 단절 | lobby로 복귀 |
+| SlotReleased (게임 종료) | lobby로 복귀 (연결 유효 시) |
+| 연결 해제 | lobby에서 제거 |
+
+### 브로드캐스트 트리거
+
+| 이벤트 | 발생 위치 |
+|--------|----------|
+| 방 생성 | handleCreateRoom |
+| 플레이어 참가 | handleJoinRoom |
+| 플레이어 퇴장 | handleLeaveRoom |
+| 게임 시작 | handleStartGame |
 
 ---
 
@@ -147,8 +180,8 @@ unordered_map<player_id, weak_ptr<ClientSession>> sessions_;
 5. RateLimiter 생성
 6. io_context 생성
 7. ChatServerChannel 생성 (→ :8083 비동기 연결)
-8. RoomManager 생성
+8. RoomManager 생성 (io_context 전달)
 9. RoomServer 생성 (:8080)
 10. GameServerChannel 생성 (:8081)
-11. SIGINT/SIGTERM 핸들러 등록
+11. SIGINT/SIGTERM 핸들러 등록 (room_manager->stop() + server/channel stop)
 12. 전체 start() → io_context.run()

@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
 
     // Room Manager
     auto room_manager = std::make_shared<sos::RoomManager>(
-        max_rooms, max_players_per_room,
+        io_context, max_rooms, max_players_per_room,
         session_store, game_server_host, game_server_port, chat_channel);
 
     // 클라이언트 TCP 서버 (:8080)
@@ -96,6 +96,7 @@ int main(int argc, char* argv[]) {
     boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code, int signal_number) {
         spdlog::info("[Room] Signal {} received, shutting down...", signal_number);
+        room_manager->stop();
         server.stop();
         internal_channel.stop();
         chat_channel->stop();

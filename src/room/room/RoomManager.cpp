@@ -9,16 +9,19 @@
 
 namespace sos {
 
-RoomManager::RoomManager(uint32_t max_rooms, uint32_t max_players_per_room,
+RoomManager::RoomManager(boost::asio::io_context& io_context,
+                         uint32_t max_rooms, uint32_t max_players_per_room,
                          std::shared_ptr<SessionStore> session_store,
                          std::string game_server_host, uint16_t game_server_port,
                          std::shared_ptr<ChatServerChannel> chat_channel)
-    : max_rooms_(max_rooms)
+    : io_context_(io_context)
+    , max_rooms_(max_rooms)
     , max_players_per_room_(max_players_per_room)
     , session_store_(std::move(session_store))
     , chat_channel_(std::move(chat_channel))
     , game_server_host_(std::move(game_server_host))
     , game_server_port_(game_server_port)
+    , lobby_broadcast_timer_(io_context)
 {
 }
 
@@ -29,6 +32,21 @@ void RoomManager::registerSession(const std::string& player_id,
 
 void RoomManager::unregisterSession(const std::string& player_id) {
     sessions_.erase(player_id);
+}
+
+void RoomManager::addLobbySession(const std::shared_ptr<ClientSession>& session) {
+    spdlog::debug("[Room] Lobby session added, remote={}", session->remoteAddress());
+    lobby_sessions_[session.get()] = session;
+}
+
+void RoomManager::removeLobbySession(ClientSession* session) {
+    if (lobby_sessions_.erase(session)) {
+        spdlog::debug("[Room] Lobby session removed");
+    }
+}
+
+void RoomManager::stop() {
+    lobby_broadcast_timer_.cancel();
 }
 
 // ============================================================
@@ -83,6 +101,7 @@ void RoomManager::handleCreateRoom(const sos::room::CreateRoomRequest& request,
     player_to_room_[player_id] = room_id;
     session->setPlayerId(player_id);
     sessions_[player_id] = session;
+    removeLobbySession(session.get());
 
     sos::room::Envelope envelope;
     auto* response = envelope.mutable_create_room_response();
@@ -92,6 +111,7 @@ void RoomManager::handleCreateRoom(const sos::room::CreateRoomRequest& request,
 
     spdlog::info("[Room] Room created, room_id={}, room_name={}, host={}",
                  room_id, room_name, player_id);
+    notifyRoomListChanged();
 }
 
 void RoomManager::handleJoinRoom(const sos::room::JoinRoomRequest& request,
@@ -146,6 +166,7 @@ void RoomManager::handleJoinRoom(const sos::room::JoinRoomRequest& request,
     player_to_room_[player_id] = room_id;
     session->setPlayerId(player_id);
     sessions_[player_id] = session;
+    removeLobbySession(session.get());
 
     // JoinRoomResponse -> 참가자
     sos::room::Envelope join_envelope;
@@ -161,6 +182,7 @@ void RoomManager::handleJoinRoom(const sos::room::JoinRoomRequest& request,
 
     spdlog::info("[Room] Player joined, player_id={}, room_id={}, players={}/{}",
                  player_id, room_id, room->playerCount(), room->maxPlayers());
+    notifyRoomListChanged();
 }
 
 void RoomManager::handleLeaveRoom(const std::string& player_id) {
@@ -191,6 +213,7 @@ void RoomManager::handleLeaveRoom(const std::string& player_id) {
         }
         spdlog::info("[Room] Player left, player_id={}, room_id={}", player_id, room_id);
     }
+    notifyRoomListChanged();
 }
 
 void RoomManager::handleToggleReady(const std::string& player_id) {
@@ -289,6 +312,7 @@ void RoomManager::handleStartGame(const std::string& player_id) {
 
     spdlog::info("[Room] Game started, room_id={}, session_id={}, players={}",
                  player_it->second, session_id, room->playerCount());
+    notifyRoomListChanged();
 }
 
 void RoomManager::handleRoomListRequest(const sos::room::RoomListRequest& request,
@@ -345,6 +369,13 @@ void RoomManager::handleSlotReleased(const std::string& player_id,
         spdlog::warn("[Room] SlotReleased session mismatch, player={}, expected={}, got={}",
                      player_id, room->sessionId(), session_id);
         return;
+    }
+
+    // lobby 복귀 (sessions_ erase 전, 연결이 유효한 경우에만)
+    if (auto sess_it = sessions_.find(player_id); sess_it != sessions_.end()) {
+        if (auto session = sess_it->second.lock()) {
+            addLobbySession(session);
+        }
     }
 
     room->removePlayer(player_id);
@@ -412,6 +443,11 @@ void RoomManager::handleGameServerDisconnect() {
         }
 
         for (const auto& pid : room->playerIds()) {
+            if (auto sess_it = sessions_.find(pid); sess_it != sessions_.end()) {
+                if (auto session = sess_it->second.lock()) {
+                    addLobbySession(session);
+                }
+            }
             player_to_room_.erase(pid);
         }
 
@@ -483,10 +519,66 @@ void RoomManager::removeRoom(const std::string& room_id,
     broadcastToRoom(*room, envelope, exclude_player_id);
 
     for (const auto& player_id : room->playerIds()) {
+        if (auto sess_it = sessions_.find(player_id); sess_it != sessions_.end()) {
+            if (auto session = sess_it->second.lock()) {
+                addLobbySession(session);
+            }
+        }
         player_to_room_.erase(player_id);
     }
 
     rooms_.erase(it);
+}
+
+// ============================================================
+// Lobby Broadcast
+// ============================================================
+
+void RoomManager::notifyRoomListChanged() {
+    if (lobby_sessions_.empty()) return;
+    if (lobby_broadcast_pending_) return;
+
+    lobby_broadcast_pending_ = true;
+    lobby_broadcast_timer_.expires_after(kLobbyBroadcastDelay);
+    lobby_broadcast_timer_.async_wait([this](boost::system::error_code ec) {
+        lobby_broadcast_pending_ = false;
+        if (ec) return;
+        broadcastRoomListToLobby();
+    });
+}
+
+void RoomManager::broadcastRoomListToLobby() {
+    if (lobby_sessions_.empty()) return;
+
+    std::vector<std::shared_ptr<Room>> waiting_rooms;
+    for (const auto& [id, room] : rooms_) {
+        if (room->state() == sos::room::ROOM_WAITING) {
+            waiting_rooms.push_back(room);
+        }
+    }
+
+    sos::room::Envelope envelope;
+    auto* response = envelope.mutable_room_list_response();
+    response->set_total_rooms(static_cast<uint32_t>(waiting_rooms.size()));
+    uint32_t count = std::min(static_cast<uint32_t>(waiting_rooms.size()), kLobbyBroadcastPageSize);
+    for (uint32_t i = 0; i < count; ++i) {
+        *response->add_rooms() = waiting_rooms[i]->toRoomSummary();
+    }
+
+    std::vector<ClientSession*> expired;
+    for (auto& [ptr, weak] : lobby_sessions_) {
+        if (auto session = weak.lock()) {
+            session->send(envelope);
+        } else {
+            expired.push_back(ptr);
+        }
+    }
+    for (auto* ptr : expired) {
+        lobby_sessions_.erase(ptr);
+    }
+
+    spdlog::debug("[Room] Lobby broadcast sent, lobby_sessions={}, waiting_rooms={}",
+                  lobby_sessions_.size(), waiting_rooms.size());
 }
 
 } // namespace sos

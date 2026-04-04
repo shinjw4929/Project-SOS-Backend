@@ -27,10 +27,15 @@ docs/
 │       ├── 로깅 통합 운영/          # 로깅 통합 운영 계획
 │       ├── 룸 서버/                # Room Server 설계 문서
 │       ├── 채팅 서버/              # Chat Server 설계 문서
-│       └── 하네스 엔지니어링/       # 하네스 엔지니어링 체크리스트
+│       ├── 하네스 엔지니어링/       # 하네스 엔지니어링 체크리스트
+│       └── Room-List-Push-Broadcast/  # 방 목록 Push 브로드캐스트
 │
 ├── Internal/
-│   └── Analysis/                  # 분석 문서
+│   ├── Analysis/                  # 분석 문서
+│   ├── ClickHouse/
+│   │   └── 사용법.md              # ClickHouse 접속, 쿼리, 데이터 관리
+│   └── Grafana/
+│       └── 사용법.md              # Grafana 대시보드, 알림, 운영
 │
 └── WorkLog/                       # 날짜별 구현 기록
     └── YYYY-MM-DD/

@@ -29,6 +29,7 @@ void ClientSession::start() {
         remote_ip_ = "unknown";
     }
     spdlog::info("[Room] Client connected, remote={}", remoteAddress());
+    room_manager_->addLobbySession(shared_from_this());
     resetHeartbeatTimer();
     doRead();
 }
@@ -158,6 +159,7 @@ void ClientSession::processMessage(const sos::room::Envelope& envelope) {
         case Payload::kLeaveRoom:
             if (!player_id_.empty()) {
                 room_manager_->handleLeaveRoom(player_id_);
+                room_manager_->addLobbySession(shared_from_this());
             }
             break;
 
@@ -198,6 +200,8 @@ void ClientSession::close() {
     boost::system::error_code ec;
     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
     socket_.close(ec);
+
+    room_manager_->removeLobbySession(this);
 
     if (!player_id_.empty()) {
         room_manager_->handleDisconnect(player_id_);
