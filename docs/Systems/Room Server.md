@@ -79,6 +79,8 @@ ROOM_IN_GAME
 ```
 Host: StartGameRequest
   │
+  ├── hasActiveGame() 검증 (다른 방이 ROOM_IN_GAME이면 GAME_SERVER_BUSY 거부)
+  │
   ├── canStart() 검증 (비호스트 전원 Ready)
   │
   ├── Room 상태 → ROOM_IN_GAME

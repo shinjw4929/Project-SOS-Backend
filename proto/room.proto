@@ -112,6 +112,7 @@ message RejectResponse {
         ALREADY_IN_ROOM = 7;
         INVALID_REQUEST = 8;
         ROOM_CLOSED = 9;
+        GAME_SERVER_BUSY = 10;
     }
 }
 

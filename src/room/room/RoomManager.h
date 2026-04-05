@@ -58,6 +58,7 @@ private:
     void broadcastToRoom(const Room& room, const sos::room::Envelope& envelope,
                          const std::string& exclude_player_id);
     void removeRoom(const std::string& room_id, const std::string& exclude_player_id);
+    bool hasActiveGame() const;
     void broadcastRoomListToLobby();
 
     static constexpr auto kLobbyBroadcastDelay = std::chrono::milliseconds(300);

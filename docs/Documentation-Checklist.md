@@ -28,7 +28,8 @@ docs/
 │       ├── 룸 서버/                # Room Server 설계 문서
 │       ├── 채팅 서버/              # Chat Server 설계 문서
 │       ├── 하네스 엔지니어링/       # 하네스 엔지니어링 체크리스트
-│       └── Room-List-Push-Broadcast/  # 방 목록 Push 브로드캐스트
+│       ├── Room-List-Push-Broadcast/  # 방 목록 Push 브로드캐스트
+│       └── 게임서버-중복세션-방지/      # 게임서버 중복세션 방지
 │
 ├── Internal/
 │   ├── Analysis/                  # 분석 문서

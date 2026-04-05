@@ -7,6 +7,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
+
 namespace sos {
 
 RoomManager::RoomManager(boost::asio::io_context& io_context,
@@ -255,6 +257,18 @@ void RoomManager::handleStartGame(const std::string& player_id) {
         return;
     }
 
+    // TODO: 다중 게임 서버 지원 시 서버 풀에서 빈 서버를 할당하는 방식으로 변경
+    if (hasActiveGame()) {
+        sos::room::Envelope reject_env;
+        auto* reject = reject_env.mutable_reject();
+        reject->set_reason(sos::room::RejectResponse::GAME_SERVER_BUSY);
+        reject->set_message("Game server is currently in use");
+        sendTo(player_id, reject_env);
+        spdlog::warn("[Room] Start rejected, game server busy, player={}, room_id={}",
+                     player_id, player_it->second);
+        return;
+    }
+
     if (!room->canStart()) {
         sos::room::Envelope reject_env;
         auto* reject = reject_env.mutable_reject();
@@ -467,6 +481,11 @@ size_t RoomManager::roomCount() const {
 // ============================================================
 // Internal Helpers
 // ============================================================
+
+bool RoomManager::hasActiveGame() const {
+    return std::any_of(rooms_.begin(), rooms_.end(),
+        [](const auto& pair) { return pair.second->state() == sos::room::ROOM_IN_GAME; });
+}
 
 void RoomManager::sendTo(const std::string& player_id,
                           const sos::room::Envelope& envelope) {
