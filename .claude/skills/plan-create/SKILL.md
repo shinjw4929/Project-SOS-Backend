@@ -73,7 +73,7 @@ AS-IS와 요구사항을 기반으로 TO-BE를 설계한다:
 
 계획 생성 후 `/review-plan [기능명]` 스킬을 호출하여 자동 검증한다.
 
-review-plan가 "재계획 필요"로 판정하면 내부적으로 `/plan-edit`를 호출하여 수정한 뒤 재검토까지 수행한다 (review-plan 내부 루프 최대 3회).
+review-plan가 "재계획 필요"로 판정하면 내부적으로 `/plan-edit`를 호출하여 수정한 뒤 재검토까지 수행한다 (review-plan 내부 루프 최대 1회).
 
 review-plan가 "승인 가능"을 반환하면 다음 단계로 진행한다.
 

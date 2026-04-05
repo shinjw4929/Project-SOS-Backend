@@ -91,8 +91,8 @@ Phase 완료 후 다음을 수행한다:
 
 1. 다음 Phase가 남아있으면 1단계로 돌아간다.
 2. 모든 Phase가 완료되면 다음을 **순서대로 모두** 수행한다:
-   1. `/review-comments`를 자동 호출하여 주석 정합성을 점검한다.
-   2. `/update-docs`를 자동 호출하여 docs 문서를 동기화한다.
+   1. `/sync-comments`를 자동 호출하여 주석 정합성을 점검한다.
+   2. `/sync-docs`를 자동 호출하여 docs 문서를 동기화한다.
    3. **(필수)** 계획 폴더를 `docs/Plans/Completed/`로 이동한다. 이 단계를 건너뛰지 않는다:
       ```
       mkdir -p "docs/Plans/Completed" && mv "docs/Plans/[기능명]" "docs/Plans/Completed/"

@@ -1,5 +1,5 @@
 ---
-name: update-docs
+name: sync-docs
 description: 코드 변경사항을 분석하여 관련 docs 문서를 업데이트합니다.
 allowed-tools: Read, Edit, Grep, Glob, Bash
 ---

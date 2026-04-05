@@ -1,5 +1,5 @@
 ---
-name: review-comments
+name: sync-comments
 description: 변경된 파일의 주석이 코드 동작과 일치하는지 검토합니다.
 allowed-tools: Read, Edit, Grep, Glob, Bash
 ---

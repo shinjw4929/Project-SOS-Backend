@@ -77,11 +77,6 @@ CLAUDE.md의 Development Guidelines와 `docs/Checklists/review-code-checklist.md
 
 ### 재검토 루프 제한
 
-`review-plan → plan-edit → review-plan` 루프는 **최대 3회**까지 반복한다.
+`review-plan → plan-edit → review-plan` 루프는 **최대 1회**까지 반복한다.
 
-각 회차의 검토 결과를 간략히 출력한다:
-```
-리뷰 회차 N/3: [승인 가능 / 재계획 필요] - [주요 지적 요약]
-```
-
-3회 검토 후에도 "재계획 필요"이면 루프를 중단하고, 남은 문제를 사용자에게 보고하여 수동 판단을 요청한다.
+1회 재검토 후에도 "재계획 필요"이면 루프를 중단하고, 남은 문제를 사용자에게 보고하여 수동 판단을 요청한다.
