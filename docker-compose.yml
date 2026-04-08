@@ -60,6 +60,7 @@ services:
       - ./infra/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
     environment:
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_SECURITY_DISABLE_BRUTE_FORCE_LOGIN_PROTECTION: "true"
       CH_PASSWORD: ${CH_PASSWORD:-dev123}
     depends_on:
       clickhouse:
