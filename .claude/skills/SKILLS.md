@@ -16,7 +16,7 @@
 [Tier 2: 검증] 텍스트 권장만 (사용자 직접 호출)
   build              CMake 빌드 + 에러 파싱
   test               CTest + Catch2 테스트
-  review-code        코드 리뷰
+  review-code        3개 도메인 에이전트 병렬 리뷰 (안전성/네트워크/컨벤션)
 
 [독립 도구] 사용자 직접 호출
   analyze            의존성/영향도 분석 (읽기 전용)
@@ -107,10 +107,10 @@
 ### 6. 구현 후 코드 리뷰
 
 ```
-/review-code [선택: 파일/커밋 범위]
+/review-code [선택: 파일/커밋 범위/관점]
 ```
 
-`docs/Checklists/review-code-checklist.md` 기준으로 변경 코드를 검토한다.
+3개 도메인 에이전트(안전성/네트워크/컨벤션)가 워크트리 격리로 병렬 리뷰. `docs/Checklists/review-code-checklist.md` 기준.
 
 ### 7. 주석만 빠르게 정리
 
