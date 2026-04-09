@@ -174,9 +174,10 @@ Project-SOS-Backend/
 ### Data Flow
 
 ```
-[Unity Game Server] → 로컬 파일 → [Vector] file source ──→ [ClickHouse] → [Grafana]
+[Unity Game Server] → 로컬 파일 → [Vector] file source ──→ [ClickHouse service_events] → [Grafana]
 [Room Server (C++)] → Docker stdout → [Vector] docker_logs ─┘
-[Chat Server (C++)] → Docker stdout → [Vector] docker_logs ──┘
+[Chat Server (C++)] → Docker stdout → [Vector] docker_logs ──┤
+                                                              └─ [Chat:Message] → route_cpp → [ClickHouse chat_messages] → [Grafana]
 ```
 
 ### Log Format (전 서비스 공통)
@@ -209,6 +210,18 @@ C++ Server 예시:
 | world | LowCardinality(String) | S / C (Game Server 전용) |
 | network_id / ghost_id | Int32 | Game Server 전용 |
 
+### ClickHouse Table: `project_sos.chat_messages`
+
+| 컬럼 | 타입 | 용도 |
+|------|------|------|
+| timestamp | DateTime64(3, 'UTC') | 메시지 시각 |
+| session_id | String | 게임 세션 ID (LOBBY는 빈값) |
+| channel | LowCardinality(String) | LOBBY / ALL / WHISPER |
+| sender_id | String | 발신자 ID |
+| sender_name | String | 발신자 표시명 |
+| target_id | String | 귓속말 대상 (WHISPER 전용) |
+| content | String | 메시지 내용 |
+
 ### Grafana Dashboards
 
 | 대시보드 | 내용 |
@@ -216,7 +229,7 @@ C++ Server 예시:
 | Service Overview | 로그 볼륨, 레벨/카테고리 분포, Warning/Error 테이블 |
 | Game Events | Wave 전환, 킬 카운트, 경제 이벤트, 적 스폰, 이동 경고, Hero 사망 |
 | Room Metrics | 방 생성/제거, 플레이어 입퇴장, 게임 시작, 토큰/세션, 내부 채널, 에러 |
-| Chat Metrics | 접속 추이, 인증, 세션 생성/종료, 채널별 메시지, Rate Limit, 내부 채널, 에러 |
+| Chat Metrics | 접속 추이, 인증, 세션 생성/종료, 채널별 메시지, 메시지 로그, Rate Limit, 내부 채널, 에러 |
 
 ---
 

@@ -61,10 +61,12 @@ ChatSend { channel, content, whisper_target }
   ├── Rate Limit 확인 (chat:rate:{player_id})
   ├── 메시지 검증 (빈값, 최대 200바이트)
   │
-  ├── CHANNEL_LOBBY → broadcastToLobby()
-  ├── CHANNEL_ALL → broadcastToSession() + saveToHistory()
-  └── CHANNEL_WHISPER → sendTo(target) + sendTo(sender)  [에코]
+  ├── CHANNEL_LOBBY → broadcastToLobby() → [Chat:Message] 로깅
+  ├── CHANNEL_ALL → broadcastToSession() + saveToHistory() → [Chat:Message] 로깅
+  └── CHANNEL_WHISPER → sendTo(target) + sendTo(sender) → [Chat:Message] 로깅
 ```
+
+각 채널의 **성공 경로에서만** `[Chat:Message]` 카테고리로 spdlog 로깅. 거부된 메시지(권한/검증 실패)는 로깅하지 않는다. sender_name의 개행/쉼표, content의 개행은 공백으로 치환하여 Vector 파싱을 보호한다.
 
 ### 히스토리 저장
 
@@ -78,6 +80,10 @@ sendHistory(player_id, session_id):
   LRANGE chat:history:{session_id}:ALL 0 19
   역순 전송 (Redis LIST는 최신이 앞 → 오래된 메시지부터 전달)
 ```
+
+### 영구 저장 (ClickHouse)
+
+모든 채널의 메시지가 spdlog → Docker stdout → Vector → ClickHouse `chat_messages` 테이블로 영구 저장된다 (90일 TTL). Redis 히스토리는 실시간 재접속 용도로 별도 유지.
 
 ---
 
