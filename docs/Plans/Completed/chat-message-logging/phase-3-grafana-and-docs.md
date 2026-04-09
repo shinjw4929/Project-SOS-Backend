@@ -12,8 +12,8 @@ Grafana Chat Metrics 대시보드에 채팅 메시지 조회 패널을 추가하
 
 ### 병렬 작업
 
-- [ ] **Task A**: Grafana 대시보드 패널 수정/추가
-- [ ] **Task B**: 시스템 문서 업데이트
+- [x] **Task A**: Grafana 대시보드 패널 수정/추가
+- [x] **Task B**: 시스템 문서 업데이트
 
 ### Task A: Grafana 패널 수정/추가
 
@@ -86,7 +86,7 @@ LIMIT 50
 
 ## 검증
 
-- [ ] Grafana 대시보드 프로비저닝 정상 로드 (JSON 문법 오류 없음)
+- [x] Grafana 대시보드 프로비저닝 정상 로드 (JSON 문법 오류 없음)
 - [ ] Chat Message Volume 패널에 채널별 데이터 표시
 - [ ] Chat Message Log 패널에 최근 메시지 표시
-- [ ] 문서와 실제 코드/설정이 일치
+- [x] 문서와 실제 코드/설정이 일치

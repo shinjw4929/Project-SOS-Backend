@@ -112,9 +112,9 @@ chat-metrics 대시보드 변경:
 
 | Phase | 파일 | 목표 | 상태 |
 |-------|------|------|------|
-| 1 | phase-1-schema-and-logging.md | ClickHouse 테이블 생성 + C++ 로깅 코드 추가 | 대기 |
-| 2 | phase-2-vector-pipeline.md | Vector 라우팅/파싱/싱크 구성 + 테스트 | 대기 |
-| 3 | phase-3-grafana-and-docs.md | Grafana 패널 추가 + 문서 업데이트 | 대기 |
+| 1 | phase-1-schema-and-logging.md | ClickHouse 테이블 생성 + C++ 로깅 코드 추가 | 완료 |
+| 2 | phase-2-vector-pipeline.md | Vector 라우팅/파싱/싱크 구성 + 테스트 | 완료 |
+| 3 | phase-3-grafana-and-docs.md | Grafana 패널 추가 + 문서 업데이트 | 완료 |
 
 ## Phase 의존성
 
