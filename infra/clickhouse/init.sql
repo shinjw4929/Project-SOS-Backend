@@ -65,3 +65,17 @@ SELECT
 FROM project_sos.service_events
 WHERE level = 'ERROR'
 GROUP BY service, category, hour;
+
+-- 채팅 메시지 영구 저장 테이블
+CREATE TABLE project_sos.chat_messages (
+    timestamp   DateTime64(3, 'UTC'),
+    session_id  String DEFAULT '',
+    channel     LowCardinality(String),
+    sender_id   String,
+    sender_name String,
+    target_id   String DEFAULT '',
+    content     String
+) ENGINE = MergeTree()
+PARTITION BY toYYYYMMDD(timestamp)
+ORDER BY (session_id, timestamp)
+TTL toDate(timestamp) + INTERVAL 90 DAY DELETE;

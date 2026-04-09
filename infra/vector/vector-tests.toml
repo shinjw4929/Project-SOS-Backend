@@ -171,3 +171,74 @@ name = "cpp_chat_fields_pass_through"
     assert_eq!(.level, "WARNING")
     assert!(!exists(.label))
     '''
+
+# ──────────────────────────────────────────
+# Chat:Message 파싱 (extract_chat_fields)
+# ──────────────────────────────────────────
+
+[[tests]]
+name = "chat_message_extracted"
+
+  [[tests.inputs]]
+  insert_at = "extract_chat_fields"
+  type = "log"
+    [tests.inputs.log_fields]
+    timestamp = "2026-04-08T10:00:01.100Z"
+    message = "channel=ALL, sender_id=player1, sender_name=John, session_id=sess-abc, target_id=, content=hello world"
+
+  [[tests.outputs]]
+  extract_from = "extract_chat_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.channel, "ALL")
+    assert_eq!(.sender_id, "player1")
+    assert_eq!(.sender_name, "John")
+    assert_eq!(.session_id, "sess-abc")
+    assert_eq!(.target_id, "")
+    assert_eq!(.content, "hello world")
+    assert!(!exists(.service))
+    assert!(!exists(.level))
+    '''
+
+[[tests]]
+name = "chat_message_whisper_with_target"
+
+  [[tests.inputs]]
+  insert_at = "extract_chat_fields"
+  type = "log"
+    [tests.inputs.log_fields]
+    timestamp = "2026-04-08T10:00:02.200Z"
+    message = "channel=WHISPER, sender_id=p1, sender_name=Kim, session_id=sess-abc, target_id=p2, content=hey there"
+
+  [[tests.outputs]]
+  extract_from = "extract_chat_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.channel, "WHISPER")
+    assert_eq!(.sender_id, "p1")
+    assert_eq!(.target_id, "p2")
+    assert_eq!(.session_id, "sess-abc")
+    assert_eq!(.content, "hey there")
+    '''
+
+[[tests]]
+name = "chat_message_with_comma_in_content"
+
+  [[tests.inputs]]
+  insert_at = "extract_chat_fields"
+  type = "log"
+    [tests.inputs.log_fields]
+    timestamp = "2026-04-08T10:00:03.300Z"
+    message = "channel=LOBBY, sender_id=p1, sender_name=Kim, session_id=, target_id=, content=hello, world, test"
+
+  [[tests.outputs]]
+  extract_from = "extract_chat_fields"
+    [[tests.outputs.conditions]]
+    type = "vrl"
+    source = '''
+    assert_eq!(.channel, "LOBBY")
+    assert_eq!(.content, "hello, world, test")
+    assert_eq!(.session_id, "")
+    '''

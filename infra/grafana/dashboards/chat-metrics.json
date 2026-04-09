@@ -98,11 +98,16 @@
       "targets": [
         {
           "queryType": "sql",
-          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE '%channel=LOBBY%', 'LOBBY', message LIKE '%channel=ALL%', 'ALL', message LIKE '%channel=WHISPER%', 'WHISPER', 'Other') AS channel, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND message LIKE 'Message sent%' GROUP BY time, channel ORDER BY time",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, channel, count() AS count FROM project_sos.chat_messages WHERE timestamp >= $__fromTime AND timestamp <= $__toTime GROUP BY time, channel ORDER BY time",
           "refId": "A",
           "format": 1
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" } }
+        }
+      }
     },
     {
       "id": 6,
@@ -150,6 +155,21 @@
         {
           "queryType": "sql",
           "rawSql": "SELECT toString(timestamp) AS time, level, category, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND level IN ('WARNING', 'ERROR') ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Chat Message Log",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 40 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, channel, sender_name, session_id, content FROM project_sos.chat_messages WHERE timestamp >= $__fromTime AND timestamp <= $__toTime ORDER BY timestamp DESC LIMIT 50",
           "refId": "A",
           "format": 2
         }

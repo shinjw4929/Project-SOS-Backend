@@ -4,6 +4,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <chrono>
 
 namespace sos {
@@ -149,6 +150,16 @@ void ChannelManager::handleChatSend(const std::string& player_id,
     sos::chat::ChatEnvelope envelope;
     *envelope.mutable_receive() = receive;
 
+    // 로깅용 필드 sanitize
+    auto strip_newlines = [](std::string s) {
+        std::replace(s.begin(), s.end(), '\n', ' ');
+        std::replace(s.begin(), s.end(), '\r', ' ');
+        return s;
+    };
+    std::string safe_name = strip_newlines(state.player_name);
+    std::replace(safe_name.begin(), safe_name.end(), ',', ' ');
+    const std::string safe_content = strip_newlines(content);
+
     switch (channel) {
         case sos::chat::CHANNEL_LOBBY:
             if (!state.in_lobby) {
@@ -157,6 +168,8 @@ void ChannelManager::handleChatSend(const std::string& player_id,
                 return;
             }
             broadcastToLobby(envelope);
+            spdlog::info("[Chat:Message] channel=LOBBY, sender_id={}, sender_name={}, session_id={}, target_id=, content={}",
+                player_id, safe_name, state.session_id, safe_content);
             break;
 
         case sos::chat::CHANNEL_ALL:
@@ -167,6 +180,8 @@ void ChannelManager::handleChatSend(const std::string& player_id,
             }
             broadcastToSession(state.session_id, envelope);
             saveToHistory(state.session_id, receive);
+            spdlog::info("[Chat:Message] channel=ALL, sender_id={}, sender_name={}, session_id={}, target_id=, content={}",
+                player_id, safe_name, state.session_id, safe_content);
             break;
 
         case sos::chat::CHANNEL_WHISPER: {
@@ -186,6 +201,8 @@ void ChannelManager::handleChatSend(const std::string& player_id,
             sendTo(target, envelope);
             // 발신자에게도 에코
             sendTo(player_id, envelope);
+            spdlog::info("[Chat:Message] channel=WHISPER, sender_id={}, sender_name={}, session_id={}, target_id={}, content={}",
+                player_id, safe_name, state.session_id, message.whisper_target(), safe_content);
             break;
         }
 

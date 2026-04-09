@@ -88,12 +88,65 @@ if err != null { abort }
 '''
 
 # ──────────────────────────────────────────
+# Transform: Chat:Message 분기 + 파싱
+# ──────────────────────────────────────────
+
+[transforms.route_cpp]
+type = "route"
+inputs = ["parse_cpp"]
+
+  [transforms.route_cpp.route]
+  chat_message = '.category == "Chat:Message"'
+
+[transforms.extract_chat_fields]
+type = "remap"
+inputs = ["route_cpp.chat_message"]
+source = '''
+parsed, err = parse_regex(
+  .message,
+  r'^channel=(?P<channel>[^,]+), sender_id=(?P<sender_id>[^,]+), sender_name=(?P<sender_name>[^,]+), session_id=(?P<session_id>[^,]*), target_id=(?P<target_id>[^,]*), content=(?P<content>.*)'
+)
+if err != null { abort }
+
+.channel = parsed.channel
+.sender_id = parsed.sender_id
+.sender_name = parsed.sender_name
+.session_id = parsed.session_id
+.target_id = parsed.target_id
+.content = parsed.content
+
+del(.service)
+del(.level)
+del(.category)
+del(.message)
+del(.build_version)
+del(.server_id)
+del(.record_type)
+del(.world)
+del(.violation_type)
+del(.entity_type)
+del(.ghost_id)
+del(.team_id)
+del(.network_id)
+del(.context)
+del(.file)
+del(.host)
+del(.source_type)
+del(.label)
+del(.stream)
+del(.container_created_at)
+del(.container_id)
+del(.container_name)
+del(.image)
+'''
+
+# ──────────────────────────────────────────
 # Transform: 메타데이터 제거 + Sink: ClickHouse
 # ──────────────────────────────────────────
 
 [transforms.clean_fields]
 type = "remap"
-inputs = ["parse_game", "parse_cpp"]
+inputs = ["parse_game", "route_cpp._unmatched"]
 source = '''
 del(.file)
 del(.host)
@@ -124,4 +177,26 @@ batch.timeout_secs = 5
 [sinks.clickhouse.buffer]
 type = "disk"
 max_size = 536870912        # 512 MB
+when_full = "block"
+
+# ──────────────────────────────────────────
+# Sink: 채팅 메시지 → ClickHouse chat_messages
+# ──────────────────────────────────────────
+
+[sinks.clickhouse_chat_messages]
+type = "clickhouse"
+inputs = ["extract_chat_fields"]
+endpoint = "http://clickhouse:8123"
+database = "project_sos"
+table = "chat_messages"
+auth.strategy = "basic"
+auth.user = "default"
+auth.password = "${CH_PASSWORD}"
+
+batch.max_events = 500
+batch.timeout_secs = 5
+
+[sinks.clickhouse_chat_messages.buffer]
+type = "disk"
+max_size = 268435488        # 256 MB (Vector 최소 요구값)
 when_full = "block"
