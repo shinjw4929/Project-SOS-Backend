@@ -62,7 +62,7 @@
       "targets": [
         {
           "queryType": "sql",
-          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE '%lobby auth%', 'Lobby Auth', message LIKE '%session auth%', 'Session Auth', 'Other') AS auth_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND (message LIKE '%lobby auth%' OR message LIKE '%session auth%') GROUP BY time, auth_type ORDER BY time",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE 'Player authenticated (lobby)%', 'Lobby Auth', message LIKE 'Player authenticated (session)%', 'Session Auth', 'Other') AS auth_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND message LIKE 'Player authenticated%' GROUP BY time, auth_type ORDER BY time",
           "refId": "A",
           "format": 1
         }
@@ -118,7 +118,7 @@
       "targets": [
         {
           "queryType": "sql",
-          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE '%rate limit%', 'Rate Limited', message LIKE '%Redis%' OR message LIKE '%redis%', 'Redis Error', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND (message LIKE '%rate limit%' OR ((message LIKE '%Redis%' OR message LIKE '%redis%') AND level IN ('WARNING', 'ERROR'))) GROUP BY time, event_type ORDER BY time",
+          "rawSql": "SELECT toStartOfMinute(timestamp) AS time, multiIf(message LIKE '%Rate limit%' OR message LIKE '%rate limit%', 'Rate Limited', message LIKE '%Redis error%', 'Redis Error', 'Other') AS event_type, count() AS count FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND (message LIKE '%Rate limit%' OR message LIKE '%rate limit%' OR (message LIKE '%Redis error%' AND level IN ('WARNING', 'ERROR'))) GROUP BY time, event_type ORDER BY time",
           "refId": "A",
           "format": 1
         }
@@ -131,10 +131,25 @@
       }
     },
     {
-      "id": 7,
-      "title": "Internal Channel Status",
+      "id": 9,
+      "title": "Chat Message Log",
       "type": "table",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT toString(timestamp) AS time, channel, sender_name, session_id, content FROM project_sos.chat_messages WHERE timestamp >= $__fromTime AND timestamp <= $__toTime ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": 2
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Internal Channel Log (Room Server)",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
       "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
       "targets": [
         {
@@ -149,27 +164,12 @@
       "id": 8,
       "title": "Chat Server Errors",
       "type": "table",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
-      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
-      "targets": [
-        {
-          "queryType": "sql",
-          "rawSql": "SELECT toString(timestamp) AS time, level, category, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND level IN ('WARNING', 'ERROR') ORDER BY timestamp DESC LIMIT 50",
-          "refId": "A",
-          "format": 2
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "title": "Chat Message Log",
-      "type": "table",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 40 },
       "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
       "targets": [
         {
           "queryType": "sql",
-          "rawSql": "SELECT toString(timestamp) AS time, channel, sender_name, session_id, content FROM project_sos.chat_messages WHERE timestamp >= $__fromTime AND timestamp <= $__toTime ORDER BY timestamp DESC LIMIT 50",
+          "rawSql": "SELECT toString(timestamp) AS time, level, category, message FROM project_sos.service_events WHERE timestamp >= $__fromTime AND timestamp <= $__toTime AND service = 'chat' AND level IN ('WARNING', 'ERROR') ORDER BY timestamp DESC LIMIT 50",
           "refId": "A",
           "format": 2
         }

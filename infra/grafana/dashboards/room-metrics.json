@@ -134,7 +134,7 @@
     },
     {
       "id": 7,
-      "title": "Internal Channel Status",
+      "title": "Internal Channel Log (Game/Chat Server)",
       "type": "table",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
       "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-ds" },
